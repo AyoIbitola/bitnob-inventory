@@ -1,0 +1,5 @@
+{
+  "venvPath": "api_backend",
+  "venv": "venv",
+  "include": ["api_backend/app", "api_backend/tests", "api_backend/alembic"]
+}

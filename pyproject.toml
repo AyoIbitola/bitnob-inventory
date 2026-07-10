@@ -1,0 +1,3 @@
+[tool.pyrefly]
+python_interpreter = "api_backend/venv/bin/python"
+search_path = ["api_backend"]
