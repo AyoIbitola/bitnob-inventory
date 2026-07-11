@@ -87,6 +87,14 @@ EXTRACT_FILTERS_PROMPT = """You are extracting search filters from a hardware in
 Return ONLY valid JSON, no markdown, no preamble, matching this schema:
 {{"keywords": ["string", ...], "category": "string or null"}}
 
+Keywords are matched with a literal, case-insensitive substring search against a
+product's brand, model, category and description. So expand the user's wording
+into the forms that would ACTUALLY appear in those fields:
+- singular AND plural ("mice" -> also "mouse"; "routers" -> also "router")
+- common synonyms and the words a product description would really use
+- keep each keyword short; prefer word stems ("keyboard", not "mechanical keyboard")
+Bad: ["mice"]   Good: ["mouse", "mice"]
+
 The "category" field, if not null, MUST be exactly one of these existing categories
 (copy it verbatim, do not invent, pluralize, or paraphrase a category name):
 {categories}
