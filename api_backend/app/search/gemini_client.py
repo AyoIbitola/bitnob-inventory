@@ -32,9 +32,12 @@ Question: "{query}"
 """
 
 COMPOSE_ANSWER_PROMPT = """The user asked: "{query}"
-Here are the matching inventory rows: {rows}
-Answer conversationally and concisely. If there are no rows, say so plainly
-and don't invent products.
+There are exactly {count} matching inventory rows (each row is one physical unit,
+identified by its own serial number). Here they are: {rows}
+
+Answer conversationally and concisely. If the question asks how many there are,
+state the count as exactly {count} — do not estimate or recompute it yourself.
+If there are no rows, say so plainly and don't invent products.
 """
 
 
@@ -111,13 +114,12 @@ def _compose_answer(query: str, products: list[Product]) -> str:
             "model_no": p.model_no,
             "category": p.category,
             "description": p.description,
-            "quantity": p.quantity,
         }
         for p in products
     ]
 
     response = model.generate_content(
-        COMPOSE_ANSWER_PROMPT.format(query=query, rows=json.dumps(rows))
+        COMPOSE_ANSWER_PROMPT.format(query=query, rows=json.dumps(rows), count=len(rows))
     )
     return response.text.strip()
 
@@ -131,4 +133,5 @@ def run_inventory_search(query: str, db: Session) -> dict:
     return {
         "answer": answer,
         "matched_products": products,
+        "count": len(products),
     }

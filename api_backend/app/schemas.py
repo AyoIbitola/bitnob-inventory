@@ -41,7 +41,6 @@ class ProductBase(BaseModel):
     model_no: str | None = None
     category: str | None = None
     description: str | None = None
-    quantity: int = 0
     price: float | None = None
 
 
@@ -55,7 +54,6 @@ class ProductUpdate(BaseModel):
     model_no: str | None = None
     category: str | None = None
     description: str | None = None
-    quantity: int | None = None
     price: float | None = None
 
 
@@ -76,3 +74,4 @@ class SearchRequest(BaseModel):
 class SearchResponse(BaseModel):
     answer: str
     matched_products: list[ProductOut]
+    count: int

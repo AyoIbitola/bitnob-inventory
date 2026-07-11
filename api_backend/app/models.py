@@ -26,7 +26,6 @@ class Product(Base):
     model_no = Column(String(100))
     category = Column(String(100), index=True)
     description = Column(Text)
-    quantity = Column(Integer, default=0, nullable=False)
     price = Column(Numeric(10, 2), nullable=True)
     created_at = Column(DateTime, default=_utcnow)
     updated_at = Column(DateTime, default=_utcnow, onupdate=_utcnow)
