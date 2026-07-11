@@ -104,6 +104,9 @@ class ProductOut(ProductBase):
     model_config = ConfigDict(from_attributes=True)
 
     id: int
+    # Set via POST /products/{id}/image, not the create/update payload, so it is
+    # present (as null) from the moment an item is created.
+    image_url: str | None = None
     created_at: datetime
     updated_at: datetime
 

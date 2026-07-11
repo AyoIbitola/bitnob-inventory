@@ -1,9 +1,16 @@
-from fastapi import APIRouter, Depends, HTTPException, Query, status
+from fastapi import APIRouter, Depends, File, HTTPException, Query, UploadFile, status
 from sqlalchemy import func, or_
 from sqlalchemy.orm import Session
 
 from app.auth.dependencies import get_current_user, require_admin
 from app.database import get_db
+from app.media import (
+    ALLOWED_IMAGE_TYPES,
+    MAX_IMAGE_BYTES,
+    delete_product_image,
+    is_configured,
+    upload_product_image,
+)
 from app.models import Product, User
 from app.schemas import InventorySummary, ProductCreate, ProductOut, ProductUpdate
 
@@ -133,6 +140,86 @@ def delete_product(
     if not product:
         raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Product not found")
 
+    # Don't leave the hosted image orphaned on Cloudinary. Best-effort: a
+    # failure here must not block deleting the product itself.
+    if product.image_public_id:
+        try:
+            delete_product_image(product.image_public_id)
+        except Exception:  # noqa: BLE001
+            pass
+
     db.delete(product)
     db.commit()
     return None
+
+
+@router.post("/{product_id}/image", response_model=ProductOut)
+async def upload_image(
+    product_id: int,
+    file: UploadFile = File(...),
+    db: Session = Depends(get_db),
+    _: User = Depends(require_admin),
+):
+    """Attach an image to a unit. Admin-only; the resulting URL is public so any
+    signed-in viewer can see it."""
+    if not is_configured():
+        raise HTTPException(
+            status_code=status.HTTP_503_SERVICE_UNAVAILABLE,
+            detail="Image uploads are not configured.",
+        )
+
+    product = db.query(Product).filter(Product.id == product_id).first()
+    if not product:
+        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Product not found")
+
+    if file.content_type not in ALLOWED_IMAGE_TYPES:
+        raise HTTPException(
+            status_code=status.HTTP_400_BAD_REQUEST,
+            detail="Unsupported image type. Use PNG, JPEG, or WebP.",
+        )
+
+    data = await file.read()
+    if not data:
+        raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail="Empty file.")
+    if len(data) > MAX_IMAGE_BYTES:
+        raise HTTPException(
+            status_code=status.HTTP_413_REQUEST_ENTITY_TOO_LARGE,
+            detail="Image is too large (max 10 MB).",
+        )
+
+    try:
+        result = upload_product_image(data, product_id)
+    except Exception:  # noqa: BLE001
+        raise HTTPException(
+            status_code=status.HTTP_502_BAD_GATEWAY,
+            detail="Image upload failed. Please try again.",
+        )
+
+    product.image_url = result["secure_url"]
+    product.image_public_id = result["public_id"]
+    db.commit()
+    db.refresh(product)
+    return product
+
+
+@router.delete("/{product_id}/image", response_model=ProductOut)
+def remove_image(
+    product_id: int,
+    db: Session = Depends(get_db),
+    _: User = Depends(require_admin),
+):
+    product = db.query(Product).filter(Product.id == product_id).first()
+    if not product:
+        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Product not found")
+
+    if product.image_public_id:
+        try:
+            delete_product_image(product.image_public_id)
+        except Exception:  # noqa: BLE001
+            pass
+
+    product.image_url = None
+    product.image_public_id = None
+    db.commit()
+    db.refresh(product)
+    return product

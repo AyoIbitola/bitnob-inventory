@@ -24,6 +24,12 @@ class Settings(BaseSettings):
     slack_bot_token: str = ""
     slack_signing_secret: str = ""
 
+    # Cloudinary hosts product images. Until all three are set, image upload
+    # returns 503 and the app simply shows no images (it does not break).
+    cloudinary_cloud_name: str = ""
+    cloudinary_api_key: str = ""
+    cloudinary_api_secret: str = ""
+
     # Origins allowed to call the API from a browser. "*" is deliberately not
     # the default: it lets any site on the internet call this API.
     allowed_origins: str = (

@@ -27,5 +27,10 @@ class Product(Base):
     category = Column(String(100), index=True)
     description = Column(Text)
     price = Column(Numeric(10, 2), nullable=True)
+    # Images live on Cloudinary; we store the public secure URL served to every
+    # viewer, plus Cloudinary's asset id so the image can be replaced/deleted.
+    # Both stay null until an admin uploads one.
+    image_url = Column(String(500), nullable=True)
+    image_public_id = Column(String(255), nullable=True)
     created_at = Column(DateTime, default=_utcnow)
     updated_at = Column(DateTime, default=_utcnow, onupdate=_utcnow)
