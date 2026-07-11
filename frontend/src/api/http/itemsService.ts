@@ -45,6 +45,10 @@ export const httpItemsService: ItemsService = {
     return toItem(await upload<ProductOut>(`/products/${id}/image`, file));
   },
 
+  async removeImage(id: string): Promise<Item> {
+    return toItem(await request<ProductOut>(`/products/${id}/image`, { method: "DELETE" }));
+  },
+
   async aiSearch(query: string): Promise<AiSearchResult> {
     const res = await request<{ answer: string; matched_products: ProductOut[] }>("/search", {
       method: "POST",

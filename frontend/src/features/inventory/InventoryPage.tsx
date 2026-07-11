@@ -13,6 +13,7 @@ import { RoleGate } from "@/auth/guards";
 import { useSettings } from "@/settings/SettingsContext";
 import { useDebouncedValue } from "@/hooks/useDebouncedValue";
 import { formatNumber, formatPrice } from "@/lib/format";
+import { imageStore } from "@/lib/imageStore";
 import type { Item, ProductGroup, StockStatus } from "@/types";
 import { useItems } from "./hooks";
 import { groupItems } from "./grouping";
@@ -138,14 +139,26 @@ export function InventoryPage() {
       {
         key: "product",
         header: "Product",
-        render: (g) => (
-          <div className="min-w-0">
-            <span className="block truncate font-semibold text-on-surface">{g.name}</span>
-            <span className="text-body-sm text-on-surface-variant">
-              {g.units.length === 1 ? "1 unit tracked" : `${g.units.length} units tracked`}
-            </span>
-          </div>
-        ),
+        render: (g) => {
+          const img = g.units.find((u) => u.imageUrl)?.imageUrl ?? imageStore.get(g.units[0]?.id ?? "");
+          return (
+            <div className="flex items-center gap-md">
+              <div className="flex h-10 w-10 flex-shrink-0 items-center justify-center overflow-hidden rounded bg-surface-variant">
+                {img ? (
+                  <img src={img} alt="" className="h-full w-full object-cover" />
+                ) : (
+                  <Icon name="inventory_2" className="text-[20px] text-on-surface-variant" />
+                )}
+              </div>
+              <div className="min-w-0">
+                <span className="block truncate font-semibold text-on-surface">{g.name}</span>
+                <span className="text-body-sm text-on-surface-variant">
+                  {g.units.length === 1 ? "1 unit tracked" : `${g.units.length} units tracked`}
+                </span>
+              </div>
+            </div>
+          );
+        },
       },
       {
         key: "units",

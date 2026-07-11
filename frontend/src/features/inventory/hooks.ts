@@ -101,6 +101,15 @@ export function useUploadImage() {
   });
 }
 
+/** Remove a unit's image (deletes the hosted asset too). */
+export function useRemoveImage() {
+  const qc = useQueryClient();
+  return useMutation({
+    mutationFn: (id: string) => itemsService.removeImage(id),
+    onSuccess: () => qc.invalidateQueries({ queryKey: itemKeys.all }),
+  });
+}
+
 /** AI natural-language search (POST /search). Run on demand, not on keystroke. */
 export function useAiSearch() {
   return useMutation({

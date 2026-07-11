@@ -1,9 +1,12 @@
-from fastapi import FastAPI
+from fastapi import Depends, FastAPI
 from fastapi.middleware.cors import CORSMiddleware
 
+from app.auth.dependencies import require_admin
 from app.auth.router import router as auth_router
 from app.categories.router import router as categories_router
 from app.config import settings
+from app.media import is_configured as cloudinary_configured
+from app.models import User
 from app.products.router import router as products_router
 from app.search.router import router as search_router
 from app.slack.router import router as slack_router
@@ -30,3 +33,20 @@ app.include_router(slack_router)
 @app.get("/")
 def root():
     return {"status": "ok"}
+
+
+@app.get("/health/integrations")
+def integrations(_: User = Depends(require_admin)):
+    """Which optional integrations are actually configured on THIS deployment.
+
+    Gemini and Cloudinary both fail soft — search silently falls back to keyword
+    matching, image upload returns 503 — which is right for users but makes a
+    missing/typo'd env var invisible. This lets an admin confirm the keys really
+    landed without shell access to the host. Booleans only; never the secrets.
+    """
+    return {
+        "gemini": bool(settings.gemini_api_key),
+        "cloudinary": cloudinary_configured(),
+        "email_domain_lock": settings.allowed_email_domain_list,
+        "seed_admins": settings.admin_seed_email_list,
+    }

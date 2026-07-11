@@ -33,6 +33,8 @@ export interface ItemsService {
   aiSearch(query: string): Promise<AiSearchResult>;
   /** Upload a unit's image (multipart). Returns the updated item with imageUrl. */
   uploadImage(id: string, file: File): Promise<Item>;
+  /** Remove a unit's image (also deletes the hosted asset). */
+  removeImage(id: string): Promise<Item>;
 }
 
 export interface UsersService {
