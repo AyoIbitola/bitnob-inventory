@@ -20,7 +20,6 @@ export const NAV_ITEMS: NavItem[] = [
   { label: "Inventory", icon: "inventory_2", to: "/", section: "main" },
   { label: "Categories", icon: "category", to: "/categories", section: "main" },
   { label: "Reports", icon: "analytics", to: "/reports", section: "main" },
-  { label: "Documentation", icon: "help", to: "/guide", section: "main" },
   { label: "Settings", icon: "settings", to: "/settings", section: "main" },
 
   { label: "Users", icon: "group", to: "/users", section: "admin", role: "admin" },

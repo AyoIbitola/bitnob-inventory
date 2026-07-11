@@ -7,7 +7,6 @@ import { LoginPage } from "@/features/auth/LoginPage";
 import { RegisterPage } from "@/features/auth/RegisterPage";
 import { InventoryPage } from "@/features/inventory/InventoryPage";
 import { CategoriesPage } from "@/features/categories/CategoriesPage";
-import { GuidePage } from "@/features/guide/GuidePage";
 import { ReportsPage } from "@/features/reports/ReportsPage";
 import { SettingsPage } from "@/features/settings/SettingsPage";
 import { UsersPage } from "@/features/users/UsersPage";
@@ -49,7 +48,6 @@ export default function App() {
                 <Route index element={<InventoryPage />} />
                 <Route path="categories" element={<CategoriesPage />} />
                 <Route path="reports" element={<ReportsPage />} />
-                <Route path="guide" element={<GuidePage />} />
                 <Route path="settings" element={<SettingsPage />} />
 
                 {/* Legacy path — Inventory lives at "/" now. */}

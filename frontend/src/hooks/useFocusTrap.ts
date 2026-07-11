@@ -1,4 +1,5 @@
 import { useEffect, useRef } from "react";
+import { lockBodyScroll, unlockBodyScroll } from "@/lib/scrollLock";
 
 const FOCUSABLE =
   'a[href], button:not([disabled]), textarea:not([disabled]), input:not([disabled]), select:not([disabled]), [tabindex]:not([tabindex="-1"])';
@@ -21,9 +22,11 @@ export function useFocusTrap<T extends HTMLElement>(active: boolean, onClose: ()
     const focusables = container?.querySelectorAll<HTMLElement>(FOCUSABLE);
     (focusables?.[0] ?? container)?.focus();
 
-    // Lock scroll on the page beneath.
-    const originalOverflow = document.body.style.overflow;
-    document.body.style.overflow = "hidden";
+    // Lock scroll on the page beneath. Reference-counted: overlays overlap
+    // (Edit/Delete open FROM the detail panel), and a per-overlay
+    // save/restore left the body permanently stuck at overflow:hidden — the
+    // page then looked frozen until a refresh.
+    lockBodyScroll();
 
     function onKeyDown(e: KeyboardEvent) {
       if (e.key === "Escape") {
@@ -50,7 +53,7 @@ export function useFocusTrap<T extends HTMLElement>(active: boolean, onClose: ()
     document.addEventListener("keydown", onKeyDown);
     return () => {
       document.removeEventListener("keydown", onKeyDown);
-      document.body.style.overflow = originalOverflow;
+      unlockBodyScroll();
       previouslyFocused?.focus?.();
     };
   }, [active, onClose]);
