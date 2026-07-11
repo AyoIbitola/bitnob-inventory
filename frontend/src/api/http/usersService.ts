@@ -17,4 +17,11 @@ export const httpUsersService: UsersService = {
     });
     return toUser(updated);
   },
+
+  async resetPassword(id: string, newPassword: string): Promise<void> {
+    await request<void>(`/users/${id}/password`, {
+      method: "PATCH",
+      body: { new_password: newPassword },
+    });
+  },
 };

@@ -19,4 +19,11 @@ export const mockUsersService: UsersService = {
     const { password: _pw, ...safe } = entry;
     return safe;
   },
+
+  async resetPassword(id: string, newPassword: string): Promise<void> {
+    await delay();
+    const entry = Object.values(mockUsers).find((u) => u.id === id);
+    if (!entry) throw new ApiError(404, "User not found.");
+    entry.password = newPassword;
+  },
 };

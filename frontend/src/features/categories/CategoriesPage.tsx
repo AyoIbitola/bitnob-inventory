@@ -183,7 +183,7 @@ export function CategoriesPage() {
       header: "Total Value",
       align: "right",
       hideBelow: "lg",
-      render: (r) => formatPrice(r.value, settings.currency),
+      render: (r) => formatPrice(r.value),
     },
     ...(isAdmin
       ? [
@@ -264,7 +264,7 @@ export function CategoriesPage() {
                 </div>
               </div>
               <span className="flex-shrink-0 font-semibold">
-                {formatPrice(r.value, settings.currency)}
+                {formatPrice(r.value)}
               </span>
             </div>
           )}

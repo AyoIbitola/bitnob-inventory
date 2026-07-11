@@ -16,9 +16,13 @@ export function AppLayout() {
   const [navOpen, setNavOpen] = useState(false);
 
   return (
-    <div className="min-h-screen bg-background">
+    // overflow-x-hidden: nothing may cause the page itself to scroll sideways.
+    <div className="min-h-screen overflow-x-hidden bg-background">
       <Sidebar open={navOpen} onClose={() => setNavOpen(false)} />
-      <div className="flex min-h-screen flex-col lg:ml-64">
+      {/* min-w-0 is load-bearing: without it a flex child defaults to
+          min-width:auto, so a wide table stretches this column past the
+          viewport and the whole layout drifts on mobile. */}
+      <div className="flex min-h-screen min-w-0 flex-col lg:ml-64">
         <Outlet context={{ openNav: () => setNavOpen(true) } satisfies LayoutContext} />
       </div>
     </div>

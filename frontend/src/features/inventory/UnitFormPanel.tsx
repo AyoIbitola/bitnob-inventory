@@ -5,7 +5,7 @@ import { Button } from "@/components/Button";
 import { InputField, TextareaField } from "@/components/FormField";
 import { ApiError } from "@/api";
 import { useToast } from "@/components/Toast";
-import { useSettings } from "@/settings/SettingsContext";
+import { CURRENCY } from "@/config";
 import type { Item } from "@/types";
 import { useUpdateItem } from "./hooks";
 
@@ -21,7 +21,6 @@ interface UnitFormPanelProps {
  * called out — changing it re-identifies the physical device.
  */
 export function UnitFormPanel({ open, onClose, unit, knownCategories }: UnitFormPanelProps) {
-  const { settings } = useSettings();
   const { toast } = useToast();
   const updateItem = useUpdateItem();
 
@@ -137,7 +136,7 @@ export function UnitFormPanel({ open, onClose, unit, knownCategories }: UnitForm
         </datalist>
 
         <InputField
-          label={`Unit Price (${settings.currency})`}
+          label={`Unit Price (${CURRENCY})`}
           inputMode="decimal"
           value={price}
           onChange={(e) => setPrice(e.target.value)}

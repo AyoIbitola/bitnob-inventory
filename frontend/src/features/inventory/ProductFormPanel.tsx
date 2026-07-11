@@ -5,7 +5,7 @@ import { Button } from "@/components/Button";
 import { Icon } from "@/components/Icon";
 import { InputField, TextareaField } from "@/components/FormField";
 import { useToast } from "@/components/Toast";
-import { useSettings } from "@/settings/SettingsContext";
+import { CURRENCY } from "@/config";
 import { fileToDownscaledDataUrl, imageStore } from "@/lib/imageStore";
 import type { ItemInput, ProductGroup } from "@/types";
 import { useCreateUnits } from "./hooks";
@@ -27,7 +27,6 @@ interface ProductFormPanelProps {
  * unit its own product ID.
  */
 export function ProductFormPanel({ open, onClose, prefill, knownCategories }: ProductFormPanelProps) {
-  const { settings } = useSettings();
   const { toast } = useToast();
   const createUnits = useCreateUnits();
 
@@ -221,7 +220,7 @@ export function ProductFormPanel({ open, onClose, prefill, knownCategories }: Pr
         </datalist>
 
         <InputField
-          label={`Unit Price (${settings.currency})`}
+          label={`Unit Price (${CURRENCY})`}
           inputMode="decimal"
           placeholder="0.00"
           value={price}

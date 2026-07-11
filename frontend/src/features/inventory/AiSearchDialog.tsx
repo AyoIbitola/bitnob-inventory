@@ -5,7 +5,6 @@ import { Button } from "@/components/Button";
 import { Icon } from "@/components/Icon";
 import { Badge } from "@/components/Badge";
 import { ApiError } from "@/api";
-import { useSettings } from "@/settings/SettingsContext";
 import { formatPrice, itemDisplayName } from "@/lib/format";
 import type { Item } from "@/types";
 import { useAiSearch } from "./hooks";
@@ -23,7 +22,6 @@ interface AiSearchDialogProps {
  * gracefully — the endpoint is known to error server-side at times.
  */
 export function AiSearchDialog({ open, onClose, onSelectItem }: AiSearchDialogProps) {
-  const { settings } = useSettings();
   const [query, setQuery] = useState("");
   const search = useAiSearch();
   const { reset } = search;
@@ -98,7 +96,7 @@ export function AiSearchDialog({ open, onClose, onSelectItem }: AiSearchDialogPr
                           {itemDisplayName(item)}
                         </span>
                         <span className="text-body-sm text-on-surface-variant">
-                          {item.serialNumber} · {formatPrice(item.price, settings.currency)}
+                          {item.serialNumber} · {formatPrice(item.price)}
                         </span>
                       </span>
                       {item.category && <Badge>{item.category}</Badge>}

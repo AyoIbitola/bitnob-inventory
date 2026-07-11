@@ -14,6 +14,8 @@ export interface AuthService {
   /** Create an account. Returns the created (always non-admin) user; does NOT
    *  sign anyone in — the caller decides (self-signup logs in, admin does not). */
   register(credentials: Credentials): Promise<User>;
+  /** Change your own password (requires the current one). */
+  changePassword(input: { currentPassword: string; newPassword: string }): Promise<void>;
 }
 
 export interface ItemsService {
@@ -35,4 +37,6 @@ export interface UsersService {
   list(): Promise<User[]>;
   /** Promote/demote a user's admin flag. Admin-only on the backend. */
   setAdmin(id: string, isAdmin: boolean): Promise<User>;
+  /** Admin resets someone's password — the recovery path for a forgotten one. */
+  resetPassword(id: string, newPassword: string): Promise<void>;
 }

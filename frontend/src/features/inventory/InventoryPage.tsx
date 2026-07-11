@@ -37,7 +37,7 @@ const STATUS_OPTIONS: Array<{ value: StockStatus | ""; label: string }> = [
 export function InventoryPage() {
   const { openNav } = useLayout();
   const { settings } = useSettings();
-  const { currency, lowStockThreshold, pageSize } = settings;
+  const { lowStockThreshold, pageSize } = settings;
 
   const { data: items, isLoading, isError, refetch } = useItems();
 
@@ -158,7 +158,7 @@ export function InventoryPage() {
         header: "Unit Price",
         align: "right",
         hideBelow: "lg",
-        render: (g) => formatPrice(g.unitPrice, currency),
+        render: (g) => formatPrice(g.unitPrice),
       },
       {
         key: "totalValue",
@@ -166,12 +166,12 @@ export function InventoryPage() {
         align: "right",
         hideBelow: "lg",
         render: (g) => (
-          <span className="font-semibold">{formatPrice(g.totalValue, currency)}</span>
+          <span className="font-semibold">{formatPrice(g.totalValue)}</span>
         ),
       },
       { key: "status", header: "Status", render: (g) => <StatusBadge status={g.status} /> },
     ],
-    [currency],
+    [],
   );
 
   return (
@@ -214,7 +214,7 @@ export function InventoryPage() {
         {/* Summary */}
         <section
           aria-label="Inventory summary"
-          className="grid grid-cols-2 gap-md xl:grid-cols-5 xl:gap-gutter"
+          className="grid grid-cols-2 gap-md md:grid-cols-3 xl:grid-cols-5 xl:gap-gutter"
         >
           <StatCard
             label="Products"
@@ -230,7 +230,7 @@ export function InventoryPage() {
           />
           <StatCard
             label="Total Value"
-            value={formatPrice(summary.totalValue, currency)}
+            value={formatPrice(summary.totalValue)}
             loading={isLoading}
             tone="primary"
             icon="payments"
@@ -346,12 +346,12 @@ export function InventoryPage() {
                     <StatusBadge status={g.status} />
                   </div>
                   <div className="mt-xs text-body-sm text-on-surface-variant">
-                    {formatNumber(g.totalUnits)} units · {formatPrice(g.unitPrice, currency)} each
+                    {formatNumber(g.totalUnits)} units · {formatPrice(g.unitPrice)} each
                   </div>
                 </div>
                 <div className="flex-shrink-0 text-right">
                   <div className="font-semibold text-on-surface">
-                    {formatPrice(g.totalValue, currency)}
+                    {formatPrice(g.totalValue)}
                   </div>
                   <div className="text-body-sm text-on-surface-variant">total</div>
                 </div>

@@ -3,7 +3,6 @@ import { Button } from "@/components/Button";
 import { Badge, StatusBadge } from "@/components/Badge";
 import { Icon } from "@/components/Icon";
 import { RoleGate } from "@/auth/guards";
-import { useSettings } from "@/settings/SettingsContext";
 import { formatDate, formatNumber, formatPrice } from "@/lib/format";
 import { imageStore } from "@/lib/imageStore";
 import type { Item, ProductGroup } from "@/types";
@@ -30,9 +29,6 @@ export function ProductDetailPanel({
   onDeleteUnit,
   onAddUnits,
 }: ProductDetailPanelProps) {
-  const { settings } = useSettings();
-  const currency = settings.currency;
-
   return (
     <SidePanel
       open={open}
@@ -79,8 +75,8 @@ export function ProductDetailPanel({
           {/* Rollup */}
           <dl className="mb-xl grid grid-cols-2 gap-sm">
             <Stat label="Total Units" value={formatNumber(group.totalUnits)} />
-            <Stat label="Unit Price" value={formatPrice(group.unitPrice, currency)} />
-            <Stat label="Total Value" value={formatPrice(group.totalValue, currency)} />
+            <Stat label="Unit Price" value={formatPrice(group.unitPrice)} />
+            <Stat label="Total Value" value={formatPrice(group.totalValue)} />
             <Stat label="Last Updated" value={formatDate(group.updatedAt)} />
           </dl>
 
@@ -100,7 +96,7 @@ export function ProductDetailPanel({
                     {unit.serialNumber}
                   </code>
                   <span className="text-body-sm text-on-surface-variant">
-                    {formatPrice(unit.price, currency)}
+                    {formatPrice(unit.price)}
                   </span>
                 </div>
                 <RoleGate role="admin">

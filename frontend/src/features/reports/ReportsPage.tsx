@@ -143,7 +143,7 @@ export function ReportsPage() {
           <StatCard label="Units" value={formatNumber(totals.units)} loading={isLoading} />
           <StatCard
             label="Total Value"
-            value={formatPrice(totals.value, settings.currency)}
+            value={formatPrice(totals.value)}
             tone="primary"
             loading={isLoading}
           />
@@ -202,7 +202,7 @@ export function ReportsPage() {
                       <div className="mb-xs flex items-center justify-between gap-md text-body-sm">
                         <span className="truncate text-on-surface">{c.name}</span>
                         <span className="flex-shrink-0 text-on-surface-variant">
-                          {formatPrice(c.value, settings.currency)}
+                          {formatPrice(c.value)}
                         </span>
                       </div>
                       <div className="h-2 overflow-hidden rounded-full bg-surface-variant">
@@ -246,7 +246,7 @@ export function ReportsPage() {
                       </span>
                     </span>
                     <span className="flex-shrink-0 font-semibold text-on-surface">
-                      {formatPrice(g.totalValue, settings.currency)}
+                      {formatPrice(g.totalValue)}
                     </span>
                   </li>
                 ))}

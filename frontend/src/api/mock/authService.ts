@@ -60,4 +60,17 @@ export const mockAuthService: AuthService = {
     const { password: _pw, ...safeUser } = user;
     return safeUser;
   },
+
+  async changePassword({
+    currentPassword,
+    newPassword,
+  }: {
+    currentPassword: string;
+    newPassword: string;
+  }): Promise<void> {
+    await delay();
+    const entry = Object.values(mockUsers).find((u) => u.password === currentPassword);
+    if (!entry) throw new ApiError(401, "Current password is incorrect");
+    entry.password = newPassword;
+  },
 };

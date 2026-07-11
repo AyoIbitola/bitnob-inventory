@@ -1,6 +1,6 @@
 import { createContext, useCallback, useContext, useEffect, useMemo, useState } from "react";
 import type { ReactNode } from "react";
-import { CURRENCY, DEFAULT_PAGE_SIZE } from "@/config";
+import { DEFAULT_PAGE_SIZE } from "@/config";
 
 /**
  * App preferences. The backend has no settings endpoint, so these are stored
@@ -13,17 +13,16 @@ import { CURRENCY, DEFAULT_PAGE_SIZE } from "@/config";
 export interface Settings {
   /** Units at or below this count = "Low Stock". 0 units = "Out of Stock". */
   lowStockThreshold: number;
-  /** ISO 4217 display currency (backend stores a bare number). */
-  currency: string;
   /** Rows per page in tables. */
   pageSize: number;
   /** Poll the API and surface changes in the notification bell. */
   notificationsEnabled: boolean;
 }
 
+// Currency is NOT a setting — everything is in Naira. It lives as the single
+// CURRENCY constant in config and is the default for formatPrice().
 const DEFAULTS: Settings = {
   lowStockThreshold: 10,
-  currency: CURRENCY,
   pageSize: DEFAULT_PAGE_SIZE,
   notificationsEnabled: true,
 };

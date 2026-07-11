@@ -14,6 +14,7 @@ import { formatDate } from "@/lib/format";
 import type { Role, User } from "@/types";
 import { useSetAdmin, useUsers } from "./hooks";
 import { AddUserModal } from "./AddUserModal";
+import { ResetPasswordModal } from "./ResetPasswordModal";
 
 /**
  * Admin-only user management. The route is hard-gated by <RequireRole>, and the
@@ -32,6 +33,7 @@ export function UsersPage() {
   const [roleFilter, setRoleFilter] = useState<Role | "">("");
   /** Granting admin is high-consequence and hard to undo — always confirm. */
   const [confirmTarget, setConfirmTarget] = useState<User | null>(null);
+  const [resetTarget, setResetTarget] = useState<User | null>(null);
 
   const rows = useMemo(() => {
     const q = search.trim().toLowerCase();
@@ -90,13 +92,22 @@ export function UsersPage() {
     },
     {
       key: "actions",
-      header: "Admin access",
+      header: "Actions",
       align: "right",
       render: (u) => {
         const isSelf = u.id === currentUser?.id;
         const busy = setAdmin.isPending && setAdmin.variables?.id === u.id;
         return (
-          <div className="flex justify-end" onClick={(e) => e.stopPropagation()}>
+          <div className="flex justify-end gap-sm" onClick={(e) => e.stopPropagation()}>
+            <Button
+              variant="secondary"
+              size="sm"
+              icon="key"
+              title={`Reset password for ${u.email}`}
+              onClick={() => setResetTarget(u)}
+            >
+              <span className="hidden lg:inline">Reset password</span>
+            </Button>
             <Button
               variant={u.role === "admin" ? "danger-outline" : "secondary"}
               size="sm"
@@ -106,9 +117,7 @@ export function UsersPage() {
               title={
                 isSelf && u.role === "admin" ? "You can't revoke your own admin access" : undefined
               }
-              onClick={() =>
-                u.role === "admin" ? applyAdmin(u, false) : setConfirmTarget(u)
-              }
+              onClick={() => (u.role === "admin" ? applyAdmin(u, false) : setConfirmTarget(u))}
             >
               {u.role === "admin" ? "Revoke admin" : "Make admin"}
             </Button>
@@ -199,6 +208,11 @@ export function UsersPage() {
       </main>
 
       <AddUserModal open={addOpen} onClose={() => setAddOpen(false)} />
+      <ResetPasswordModal
+        user={resetTarget}
+        open={resetTarget !== null}
+        onClose={() => setResetTarget(null)}
+      />
 
       {/* Granting admin is a privilege escalation — never a bare one-click. */}
       <Modal

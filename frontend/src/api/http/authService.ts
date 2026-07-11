@@ -42,4 +42,17 @@ export const httpAuthService: AuthService = {
     });
     return toUser(created);
   },
+
+  async changePassword({
+    currentPassword,
+    newPassword,
+  }: {
+    currentPassword: string;
+    newPassword: string;
+  }): Promise<void> {
+    await request<void>("/auth/me/password", {
+      method: "PATCH",
+      body: { current_password: currentPassword, new_password: newPassword },
+    });
+  },
 };

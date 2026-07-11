@@ -41,7 +41,9 @@ export function SidePanel({ open, onClose, title, children, footer, className }:
         aria-modal="true"
         aria-labelledby={titleId}
         className={cn(
-          "absolute right-0 top-0 flex h-full w-full max-w-[440px] flex-col border-l border-outline-variant bg-surface-container-lowest shadow-overlay",
+          // h-dvh (not h-full/100vh) so mobile browser chrome can't push the
+          // sticky footer buttons below the fold.
+          "absolute right-0 top-0 flex h-dvh max-h-dvh w-full max-w-[440px] flex-col border-l border-outline-variant bg-surface-container-lowest shadow-overlay",
           "motion-safe:animate-[slideIn_0.3s_cubic-bezier(0.16,1,0.3,1)]",
           className,
         )}

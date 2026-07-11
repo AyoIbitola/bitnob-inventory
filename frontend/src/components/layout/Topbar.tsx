@@ -24,7 +24,7 @@ export function Topbar({ title, children, onOpenNav }: TopbarProps) {
 
   return (
     <header className="sticky top-0 z-30 flex h-16 items-center justify-between gap-sm border-b border-outline-variant bg-surface px-md md:px-lg">
-      <div className="flex min-w-0 flex-1 items-center gap-md">
+      <div className="flex min-w-0 flex-1 items-center gap-sm md:gap-md">
         <button
           type="button"
           onClick={onOpenNav}
@@ -33,7 +33,10 @@ export function Topbar({ title, children, onOpenNav }: TopbarProps) {
         >
           <Icon name="menu" />
         </button>
-        <h2 className="truncate text-display-md font-bold text-primary">{title}</h2>
+        {/* Smaller on phones — 24px + controls doesn't fit a 360px viewport. */}
+        <h2 className="truncate text-headline-sm font-bold text-primary md:text-display-md">
+          {title}
+        </h2>
         {children}
       </div>
 

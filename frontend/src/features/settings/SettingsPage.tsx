@@ -1,33 +1,33 @@
 import { useState } from "react";
-import type { ReactNode } from "react";
+import type { FormEvent, ReactNode } from "react";
 import { Topbar } from "@/components/layout/Topbar";
 import { useLayout } from "@/components/layout/AppLayout";
 import { Button } from "@/components/Button";
 import { Badge } from "@/components/Badge";
 import { Icon } from "@/components/Icon";
 import { InputField, SelectField } from "@/components/FormField";
+import { PasswordField } from "@/components/PasswordField";
+import { useToast } from "@/components/Toast";
 import { useAuth } from "@/auth/AuthContext";
 import { useSettings } from "@/settings/SettingsContext";
-import { APP_NAME } from "@/config";
+import { ApiError, authService } from "@/api";
+import { APP_NAME, CURRENCY } from "@/config";
 import { formatDate } from "@/lib/format";
 
-const CURRENCIES = ["NGN", "USD", "EUR", "GBP", "GHS", "KES", "ZAR"];
 const PAGE_SIZES = [10, 25, 50, 100];
 
 /** A date-stamped build reads as shipped software; "v0.1" reads as unfinished. */
 const BUILD_LABEL = `Build ${new Date().toISOString().slice(0, 10)}`;
 
 /**
- * Settings. Preferences here are real — they drive stock thresholds, currency
- * formatting, table paging and the notification poller.
- *
- * Profile and password are read-only: the backend exposes no endpoints to
- * update a user's email or change a password (flagged in DESIGN-NOTES).
+ * Settings. Preferences here are real — they drive stock thresholds, table
+ * paging and the notification poller. Password change hits the backend.
  */
 export function SettingsPage() {
   const { openNav } = useLayout();
   const { user } = useAuth();
   const { settings, update, reset } = useSettings();
+  const { toast } = useToast();
   const [saved, setSaved] = useState(false);
 
   function touch() {
@@ -39,18 +39,14 @@ export function SettingsPage() {
     <>
       <Topbar title="Settings" onOpenNav={openNav}>
         {saved && (
-          <span className="flex items-center gap-xs text-body-sm text-status-success-fg">
+          <span className="hidden items-center gap-xs text-body-sm text-status-success-fg sm:flex">
             <Icon name="check_circle" className="text-[18px]" /> Saved
           </span>
         )}
       </Topbar>
 
       <main className="mx-auto w-full max-w-3xl space-y-lg p-md md:p-lg">
-        <Section
-          title="Profile"
-          description="Your account details, as held by the backend."
-          icon="account_circle"
-        >
+        <Section title="Profile" description="Your account details." icon="account_circle">
           <div className="flex items-center gap-md">
             <span className="flex h-14 w-14 flex-shrink-0 items-center justify-center rounded-full bg-secondary-container text-headline-sm font-bold text-on-secondary-container">
               {user?.initials ?? "?"}
@@ -67,53 +63,31 @@ export function SettingsPage() {
               </div>
             </div>
           </div>
-          <Notice>
-            Email and display name can&apos;t be changed yet — the API has no endpoint for it.
-          </Notice>
         </Section>
 
         <Section
           title="Inventory"
-          description="How stock levels and prices are interpreted."
+          description="How stock levels are interpreted."
           icon="inventory_2"
         >
-          <div className="grid grid-cols-1 gap-md sm:grid-cols-2">
-            <InputField
-              label="Low stock threshold (units)"
-              type="number"
-              min={0}
-              value={String(settings.lowStockThreshold)}
-              onChange={(e) => {
-                const n = Number(e.target.value);
-                if (Number.isInteger(n) && n >= 0) {
-                  update({ lowStockThreshold: n });
-                  touch();
-                }
-              }}
-            />
-            <SelectField
-              label="Display currency"
-              value={settings.currency}
-              onChange={(e) => {
-                update({ currency: e.target.value });
+          <InputField
+            label="Low stock threshold (units)"
+            type="number"
+            min={0}
+            wrapperClassName="sm:w-64"
+            value={String(settings.lowStockThreshold)}
+            onChange={(e) => {
+              const n = Number(e.target.value);
+              if (Number.isInteger(n) && n >= 0) {
+                update({ lowStockThreshold: n });
                 touch();
-              }}
-            >
-              {CURRENCIES.map((c) => (
-                <option key={c} value={c}>
-                  {c}
-                </option>
-              ))}
-            </SelectField>
-          </div>
+              }
+            }}
+          />
           <p className="text-body-sm text-on-surface-variant">
             A product with <strong>{settings.lowStockThreshold} units or fewer</strong> is marked
-            Low Stock; zero units is Out of Stock.
+            Low Stock; zero units is Out of Stock. Prices are in {CURRENCY}.
           </p>
-          <Notice>
-            The backend stores prices as plain numbers with no currency, so this is a display
-            setting only — it never changes stored values.
-          </Notice>
         </Section>
 
         <Section title="Display" description="How lists are paged." icon="table_rows">
@@ -148,33 +122,15 @@ export function SettingsPage() {
             label="Inventory change alerts"
             hint="Notifies you when any admin adds, edits or deletes a unit."
           />
-          <Notice>
-            The API has no live events endpoint, so changes are detected by polling every 30
-            seconds — alerts can lag slightly behind.
-          </Notice>
         </Section>
 
-        <Section title="Security" description="Password and session." icon="lock">
-          <div className="flex flex-col gap-sm sm:flex-row sm:items-center sm:justify-between">
-            <div>
-              <p className="text-body-md font-semibold text-on-surface">Password</p>
-              <p className="text-body-sm text-on-surface-variant">
-                Ask an administrator to reset it for you.
-              </p>
-            </div>
-            <Button variant="secondary" disabled title="No password-change endpoint on the API">
-              Change password
-            </Button>
-          </div>
-          <Notice>
-            Password changes and resets need a backend endpoint that doesn&apos;t exist yet.
-          </Notice>
+        <Section title="Security" description="Change your password." icon="lock">
+          <ChangePasswordForm onDone={() => toast("Password changed.")} />
         </Section>
 
         <Section title="About" description="Application information." icon="info">
-          {/* Build/infra metadata is admin-only — surfacing "v0.1" and the data
-              source to every staff member signals pre-production and mildly
-              helps an attacker confirm the environment. */}
+          {/* Build metadata is admin-only: showing a version/data-source to every
+              staff member signals pre-production and mildly aids an attacker. */}
           {user?.role === "admin" && (
             <dl className="grid grid-cols-2 gap-sm text-body-sm">
               <dt className="text-on-surface-variant">Application</dt>
@@ -192,12 +148,83 @@ export function SettingsPage() {
                 touch();
               }}
             >
-              Reset preferences to defaults
+              Reset preferences
             </Button>
           </div>
         </Section>
       </main>
     </>
+  );
+}
+
+function ChangePasswordForm({ onDone }: { onDone: () => void }) {
+  const [current, setCurrent] = useState("");
+  const [next, setNext] = useState("");
+  const [confirm, setConfirm] = useState("");
+  const [error, setError] = useState<string | null>(null);
+  const [busy, setBusy] = useState(false);
+
+  async function handleSubmit(e: FormEvent) {
+    e.preventDefault();
+    setError(null);
+
+    if (next.length < 8) return setError("New password must be at least 8 characters.");
+    if (next !== confirm) return setError("New passwords don't match.");
+
+    setBusy(true);
+    try {
+      await authService.changePassword({ currentPassword: current, newPassword: next });
+      setCurrent("");
+      setNext("");
+      setConfirm("");
+      onDone();
+    } catch (err) {
+      setError(
+        err instanceof ApiError ? err.message : "Couldn't change your password. Try again.",
+      );
+    } finally {
+      setBusy(false);
+    }
+  }
+
+  return (
+    <form className="space-y-md" onSubmit={handleSubmit} noValidate>
+      {error && (
+        <p
+          role="alert"
+          className="rounded-lg border border-error-container bg-error-container/50 px-md py-sm text-body-sm text-on-error-container"
+        >
+          {error}
+        </p>
+      )}
+      <PasswordField
+        label="Current password"
+        autoComplete="current-password"
+        required
+        wrapperClassName="sm:w-80"
+        value={current}
+        onChange={(e) => setCurrent(e.target.value)}
+      />
+      <PasswordField
+        label="New password"
+        autoComplete="new-password"
+        required
+        wrapperClassName="sm:w-80"
+        value={next}
+        onChange={(e) => setNext(e.target.value)}
+      />
+      <PasswordField
+        label="Confirm new password"
+        autoComplete="new-password"
+        required
+        wrapperClassName="sm:w-80"
+        value={confirm}
+        onChange={(e) => setConfirm(e.target.value)}
+      />
+      <Button type="submit" loading={busy} disabled={!current || !next}>
+        Change password
+      </Button>
+    </form>
   );
 }
 
@@ -213,27 +240,18 @@ function Section({
   children: ReactNode;
 }) {
   return (
-    <section className="rounded-lg border border-outline-variant bg-surface-container-lowest">
+    <section className="overflow-hidden rounded-lg border border-outline-variant bg-surface-container-lowest">
       <header className="flex items-start gap-md border-b border-outline-variant px-md py-md md:px-lg">
         <span className="flex h-9 w-9 flex-shrink-0 items-center justify-center rounded-lg bg-surface-variant text-primary">
           <Icon name={icon} className="text-[20px]" />
         </span>
-        <div>
+        <div className="min-w-0">
           <h2 className="text-body-md font-bold text-on-surface">{title}</h2>
           <p className="text-body-sm text-on-surface-variant">{description}</p>
         </div>
       </header>
       <div className="space-y-md px-md py-md md:px-lg">{children}</div>
     </section>
-  );
-}
-
-function Notice({ children }: { children: ReactNode }) {
-  return (
-    <p className="flex items-start gap-sm rounded-lg bg-surface-container-low px-md py-sm text-body-sm text-on-surface-variant">
-      <Icon name="info" className="mt-0.5 flex-shrink-0 text-[18px]" />
-      <span>{children}</span>
-    </p>
   );
 }
 
@@ -250,7 +268,7 @@ function Toggle({
 }) {
   return (
     <label className="flex cursor-pointer items-center justify-between gap-md">
-      <span>
+      <span className="min-w-0">
         <span className="block text-body-md font-semibold text-on-surface">{label}</span>
         <span className="block text-body-sm text-on-surface-variant">{hint}</span>
       </span>
