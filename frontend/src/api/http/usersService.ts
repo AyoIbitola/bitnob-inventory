@@ -24,4 +24,8 @@ export const httpUsersService: UsersService = {
       body: { new_password: newPassword },
     });
   },
+
+  async remove(id: string): Promise<void> {
+    await request<void>(`/users/${id}`, { method: "DELETE" });
+  },
 };

@@ -85,54 +85,55 @@ export function ProductDetailPanel({
             <span>Units ({group.units.length})</span>
           </h4>
 
+          {/* Each unit shows its OWN description. Previously the panel rendered
+              units[0].description as a single "product description", which hid
+              every other unit's notes — condition/notes differ per device. */}
           <ul className="divide-y divide-outline-variant overflow-hidden rounded-lg border border-outline-variant">
             {group.units.map((unit) => (
-              <li
-                key={unit.id}
-                className="flex items-center justify-between gap-md px-md py-sm hover:bg-surface-container-low"
-              >
-                <div className="min-w-0">
-                  <code className="block truncate text-body-sm font-semibold text-on-surface">
-                    {unit.serialNumber}
-                  </code>
-                  <span className="text-body-sm text-on-surface-variant">
-                    {formatPrice(unit.price)}
-                  </span>
-                </div>
-                <RoleGate role="admin">
-                  <div className="flex flex-shrink-0 gap-sm">
-                    <button
-                      type="button"
-                      aria-label={`Edit unit ${unit.serialNumber}`}
-                      onClick={() => onEditUnit(unit)}
-                      className="rounded p-1 text-on-surface-variant hover:text-primary focus:outline-none focus-visible:ring-2 focus-visible:ring-primary-container"
-                    >
-                      <Icon name="edit" className="text-[20px]" />
-                    </button>
-                    <button
-                      type="button"
-                      aria-label={`Delete unit ${unit.serialNumber}`}
-                      onClick={() => onDeleteUnit(unit)}
-                      className="rounded p-1 text-on-surface-variant hover:text-error focus:outline-none focus-visible:ring-2 focus-visible:ring-error"
-                    >
-                      <Icon name="delete" className="text-[20px]" />
-                    </button>
+              <li key={unit.id} className="px-md py-sm hover:bg-surface-container-low">
+                <div className="flex items-start justify-between gap-md">
+                  <div className="min-w-0">
+                    <code className="block truncate text-body-sm font-semibold text-on-surface">
+                      {unit.serialNumber}
+                    </code>
+                    <span className="text-body-sm text-on-surface-variant">
+                      {formatPrice(unit.price)}
+                    </span>
                   </div>
-                </RoleGate>
+                  <RoleGate role="admin">
+                    <div className="flex flex-shrink-0 gap-sm">
+                      <button
+                        type="button"
+                        aria-label={`Edit unit ${unit.serialNumber}`}
+                        onClick={() => onEditUnit(unit)}
+                        className="rounded p-1 text-on-surface-variant hover:text-primary focus:outline-none focus-visible:ring-2 focus-visible:ring-primary-container"
+                      >
+                        <Icon name="edit" className="text-[20px]" />
+                      </button>
+                      <button
+                        type="button"
+                        aria-label={`Delete unit ${unit.serialNumber}`}
+                        onClick={() => onDeleteUnit(unit)}
+                        className="rounded p-1 text-on-surface-variant hover:text-error focus:outline-none focus-visible:ring-2 focus-visible:ring-error"
+                      >
+                        <Icon name="delete" className="text-[20px]" />
+                      </button>
+                    </div>
+                  </RoleGate>
+                </div>
+
+                {unit.description ? (
+                  <p className="mt-xs whitespace-pre-wrap text-body-sm leading-relaxed text-on-surface-variant">
+                    {unit.description}
+                  </p>
+                ) : (
+                  <p className="mt-xs text-body-sm italic text-on-surface-variant/60">
+                    No description for this unit.
+                  </p>
+                )}
               </li>
             ))}
           </ul>
-
-          {group.units[0]?.description && (
-            <div className="mt-xl">
-              <h4 className="mb-sm text-label-caps uppercase tracking-wider text-on-surface-variant">
-                Description
-              </h4>
-              <p className="text-body-sm leading-relaxed text-on-surface-variant">
-                {group.units[0].description}
-              </p>
-            </div>
-          )}
         </div>
       )}
     </SidePanel>

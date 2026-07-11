@@ -39,4 +39,6 @@ export interface UsersService {
   setAdmin(id: string, isAdmin: boolean): Promise<User>;
   /** Admin resets someone's password — the recovery path for a forgotten one. */
   resetPassword(id: string, newPassword: string): Promise<void>;
+  /** Admin removes an account (offboarding, or scrubbing old external accounts). */
+  remove(id: string): Promise<void>;
 }

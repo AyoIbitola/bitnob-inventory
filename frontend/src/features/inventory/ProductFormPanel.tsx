@@ -18,6 +18,12 @@ interface ProductFormPanelProps {
   knownCategories: string[];
 }
 
+/** A unit being drafted: its serial (product ID) and its own description. */
+interface UnitDraft {
+  serial: string;
+  description: string;
+}
+
 /**
  * Add a product and its units.
  *
@@ -34,8 +40,10 @@ export function ProductFormPanel({ open, onClose, prefill, knownCategories }: Pr
   const [modelNo, setModelNo] = useState("");
   const [category, setCategory] = useState("");
   const [price, setPrice] = useState("");
-  const [description, setDescription] = useState("");
-  const [serials, setSerials] = useState<string[]>([""]);
+  /** Fallback only — used for a unit that has no description of its own. */
+  const [defaultDescription, setDefaultDescription] = useState("");
+  /** One row per PHYSICAL unit: its serial (product ID) and its OWN description. */
+  const [units, setUnits] = useState<UnitDraft[]>([{ serial: "", description: "" }]);
   const [image, setImage] = useState<string | null>(null);
   const [imageBusy, setImageBusy] = useState(false);
   const [error, setError] = useState<string | null>(null);
@@ -49,33 +57,35 @@ export function ProductFormPanel({ open, onClose, prefill, knownCategories }: Pr
     setModelNo(prefill?.modelNo ?? "");
     setCategory(prefill?.category ?? "");
     setPrice(prefill?.unitPrice != null ? String(prefill.unitPrice) : "");
-    setDescription(prefill?.units[0]?.description ?? "");
-    setSerials([""]);
+    setDefaultDescription("");
+    setUnits([{ serial: "", description: "" }]);
     setImage(null);
     setError(null);
     setFailures([]);
   }, [open, prefill]);
 
-  function setSerial(index: number, value: string) {
-    setSerials((prev) => prev.map((s, i) => (i === index ? value : s)));
+  function setUnitField(index: number, field: keyof UnitDraft, value: string) {
+    setUnits((prev) => prev.map((u, i) => (i === index ? { ...u, [field]: value } : u)));
   }
-  function addSerial() {
-    setSerials((prev) => [...prev, ""]);
+  function addUnit() {
+    setUnits((prev) => [...prev, { serial: "", description: "" }]);
   }
-  function removeSerial(index: number) {
-    setSerials((prev) => (prev.length === 1 ? [""] : prev.filter((_, i) => i !== index)));
+  function removeUnit(index: number) {
+    setUnits((prev) =>
+      prev.length === 1 ? [{ serial: "", description: "" }] : prev.filter((_, i) => i !== index),
+    );
   }
 
-  /** Paste many serials at once (newline/comma separated). */
+  /** Paste many serials at once (newline/comma separated) into separate units. */
   function handlePasteSerials(index: number, text: string) {
     const parts = text
       .split(/[\n,]+/)
       .map((s) => s.trim())
       .filter(Boolean);
     if (parts.length <= 1) return false;
-    setSerials((prev) => {
+    setUnits((prev) => {
       const next = [...prev];
-      next.splice(index, 1, ...parts);
+      next.splice(index, 1, ...parts.map((serial) => ({ serial, description: "" })));
       return next;
     });
     return true;
@@ -98,25 +108,33 @@ export function ProductFormPanel({ open, onClose, prefill, knownCategories }: Pr
     setError(null);
     setFailures([]);
 
-    const cleanSerials = serials.map((s) => s.trim()).filter(Boolean);
+    const drafts = units
+      .map((u) => ({ serial: u.serial.trim(), description: u.description.trim() }))
+      .filter((u) => u.serial);
 
     if (!brand.trim()) return setError("Brand is required.");
-    if (cleanSerials.length === 0)
+    if (drafts.length === 0)
       return setError("Add at least one serial number — each unit needs its own.");
 
-    const dupes = cleanSerials.filter((s, i) => cleanSerials.indexOf(s) !== i);
-    if (dupes.length) return setError(`Duplicate serial number(s): ${[...new Set(dupes)].join(", ")}`);
+    const serialList = drafts.map((u) => u.serial);
+    const dupes = serialList.filter((s, i) => serialList.indexOf(s) !== i);
+    if (dupes.length)
+      return setError(`Duplicate serial number(s): ${[...new Set(dupes)].join(", ")}`);
 
     const priceValue = price.trim() === "" ? undefined : Number(price);
     if (priceValue !== undefined && (!Number.isFinite(priceValue) || priceValue < 0))
       return setError("Enter a valid, non-negative unit price.");
 
-    const inputs: ItemInput[] = cleanSerials.map((serialNumber) => ({
-      serialNumber,
+    const fallback = defaultDescription.trim();
+
+    const inputs: ItemInput[] = drafts.map((u) => ({
+      serialNumber: u.serial,
       brand: brand.trim(),
       modelNo: modelNo.trim() || undefined,
       category: category.trim() || undefined,
-      description: description.trim() || undefined,
+      // Each unit keeps its OWN description; the shared field is only a fallback
+      // for units left blank (e.g. 20 identical cables).
+      description: u.description || fallback || undefined,
       price: priceValue,
     }));
 
@@ -126,8 +144,9 @@ export function ProductFormPanel({ open, onClose, prefill, knownCategories }: Pr
 
     if (failed.length) {
       setFailures(failed);
-      // Keep only the failed serials so the admin can correct them.
-      setSerials(failed.map((f) => f.serialNumber));
+      // Keep only the failed units (with their descriptions) so they can be fixed.
+      const failedSerials = new Set(failed.map((f) => f.serialNumber));
+      setUnits(drafts.filter((u) => failedSerials.has(u.serial)));
       if (created.length === 0) setError("None of the units could be saved.");
       else toast(`Saved ${created.length} of ${inputs.length} units.`, "error");
       return;
@@ -141,7 +160,7 @@ export function ProductFormPanel({ open, onClose, prefill, knownCategories }: Pr
     onClose();
   }
 
-  const unitCount = serials.filter((s) => s.trim()).length;
+  const unitCount = units.filter((u) => u.serial.trim()).length;
   const formId = "product-form";
 
   return (
@@ -228,55 +247,65 @@ export function ProductFormPanel({ open, onClose, prefill, knownCategories }: Pr
         />
 
         <TextareaField
-          label="Description"
+          label="Default description (optional)"
           rows={2}
-          placeholder="Condition, specs, or notes…"
-          value={description}
-          onChange={(e) => setDescription(e.target.value)}
+          placeholder="Used only for units you leave blank below…"
+          value={defaultDescription}
+          onChange={(e) => setDefaultDescription(e.target.value)}
         />
 
-        {/* Per-unit serial numbers */}
+        {/* Per-unit rows: each physical unit gets its own serial AND description */}
         <div className="flex flex-col gap-sm">
-          <div className="flex items-baseline justify-between">
-            <span className="text-label-caps uppercase tracking-wider text-on-surface-variant">
-              Serial Numbers · {unitCount} unit{unitCount === 1 ? "" : "s"}
-            </span>
-          </div>
+          <span className="text-label-caps uppercase tracking-wider text-on-surface-variant">
+            Units · {unitCount} {unitCount === 1 ? "unit" : "units"}
+          </span>
           <p className="text-body-sm text-on-surface-variant">
-            Every physical unit needs its own serial number — that&apos;s its product ID. You can
-            paste a whole list at once.
+            Every physical unit has its own serial number (its product ID) and its own description —
+            condition and notes differ per device. Paste a list of serials to add many at once.
           </p>
 
-          <div className="space-y-sm">
-            {serials.map((serial, index) => (
-              <div key={index} className="flex items-center gap-sm">
-                <span className="w-6 flex-shrink-0 text-right text-body-sm text-on-surface-variant">
-                  {index + 1}
-                </span>
+          <div className="space-y-md">
+            {units.map((unit, index) => (
+              <div
+                key={index}
+                className="rounded-lg border border-outline-variant bg-surface-container-low p-sm"
+              >
+                <div className="flex items-center gap-sm">
+                  <span className="w-5 flex-shrink-0 text-right text-body-sm font-semibold text-on-surface-variant">
+                    {index + 1}
+                  </span>
+                  <input
+                    value={unit.serial}
+                    onChange={(e) => setUnitField(index, "serial", e.target.value)}
+                    onPaste={(e) => {
+                      const text = e.clipboardData.getData("text");
+                      if (handlePasteSerials(index, text)) e.preventDefault();
+                    }}
+                    placeholder={`Serial no. e.g. SN-${String(index + 1).padStart(3, "0")}`}
+                    aria-label={`Serial number for unit ${index + 1}`}
+                    className="h-11 w-full min-w-0 rounded-lg border border-outline-variant bg-surface-container-lowest px-md text-body-md focus-ring"
+                  />
+                  <button
+                    type="button"
+                    onClick={() => removeUnit(index)}
+                    aria-label={`Remove unit ${index + 1}`}
+                    className="flex-shrink-0 rounded p-2 text-on-surface-variant hover:text-error focus:outline-none focus-visible:ring-2 focus-visible:ring-error"
+                  >
+                    <Icon name="close" className="text-[18px]" />
+                  </button>
+                </div>
                 <input
-                  value={serial}
-                  onChange={(e) => setSerial(index, e.target.value)}
-                  onPaste={(e) => {
-                    const text = e.clipboardData.getData("text");
-                    if (handlePasteSerials(index, text)) e.preventDefault();
-                  }}
-                  placeholder={`e.g. SN-MOUSE-${String(index + 1).padStart(3, "0")}`}
-                  aria-label={`Serial number for unit ${index + 1}`}
-                  className="h-11 w-full rounded-lg border border-outline-variant bg-surface-container-lowest px-md text-body-md focus-ring"
+                  value={unit.description}
+                  onChange={(e) => setUnitField(index, "description", e.target.value)}
+                  placeholder="Description for this unit (condition, notes…)"
+                  aria-label={`Description for unit ${index + 1}`}
+                  className="mt-sm ml-7 h-10 w-[calc(100%-2.75rem)] min-w-0 rounded-lg border border-outline-variant bg-surface-container-lowest px-md text-body-sm focus-ring"
                 />
-                <button
-                  type="button"
-                  onClick={() => removeSerial(index)}
-                  aria-label={`Remove unit ${index + 1}`}
-                  className="flex-shrink-0 rounded p-2 text-on-surface-variant hover:text-error focus:outline-none focus-visible:ring-2 focus-visible:ring-error"
-                >
-                  <Icon name="close" className="text-[18px]" />
-                </button>
               </div>
             ))}
           </div>
 
-          <Button variant="secondary" size="sm" icon="add" onClick={addSerial} className="self-start">
+          <Button variant="secondary" size="sm" icon="add" onClick={addUnit} className="self-start">
             Add another unit
           </Button>
         </div>

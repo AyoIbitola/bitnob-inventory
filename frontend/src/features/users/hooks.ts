@@ -17,6 +17,15 @@ export function useSetAdmin() {
   });
 }
 
+/** Admin deletes an account. */
+export function useDeleteUser() {
+  const qc = useQueryClient();
+  return useMutation({
+    mutationFn: (id: string) => usersService.remove(id),
+    onSuccess: () => qc.invalidateQueries({ queryKey: usersKey }),
+  });
+}
+
 /** Admin resets another user's password — the recovery path for a forgotten one. */
 export function useResetPassword() {
   return useMutation({

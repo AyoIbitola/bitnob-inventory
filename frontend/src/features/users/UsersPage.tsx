@@ -12,7 +12,7 @@ import { useAuth } from "@/auth/AuthContext";
 import { ApiError } from "@/api";
 import { formatDate } from "@/lib/format";
 import type { Role, User } from "@/types";
-import { useSetAdmin, useUsers } from "./hooks";
+import { useDeleteUser, useSetAdmin, useUsers } from "./hooks";
 import { AddUserModal } from "./AddUserModal";
 import { ResetPasswordModal } from "./ResetPasswordModal";
 
@@ -27,6 +27,7 @@ export function UsersPage() {
   const { toast } = useToast();
   const { data: users, isLoading, isError, refetch } = useUsers();
   const setAdmin = useSetAdmin();
+  const deleteUser = useDeleteUser();
 
   const [addOpen, setAddOpen] = useState(false);
   const [search, setSearch] = useState("");
@@ -34,6 +35,7 @@ export function UsersPage() {
   /** Granting admin is high-consequence and hard to undo — always confirm. */
   const [confirmTarget, setConfirmTarget] = useState<User | null>(null);
   const [resetTarget, setResetTarget] = useState<User | null>(null);
+  const [deleteTarget, setDeleteTarget] = useState<User | null>(null);
 
   const rows = useMemo(() => {
     const q = search.trim().toLowerCase();
@@ -43,6 +45,17 @@ export function UsersPage() {
       return true;
     });
   }, [users, search, roleFilter]);
+
+  async function applyDelete(user: User) {
+    try {
+      await deleteUser.mutateAsync(user.id);
+      toast(`${user.email} removed.`);
+    } catch (err) {
+      toast(err instanceof ApiError ? err.message : "Couldn't remove that user.", "error");
+    } finally {
+      setDeleteTarget(null);
+    }
+  }
 
   async function applyAdmin(user: User, isAdmin: boolean) {
     try {
@@ -121,6 +134,16 @@ export function UsersPage() {
             >
               {u.role === "admin" ? "Revoke admin" : "Make admin"}
             </Button>
+            <button
+              type="button"
+              aria-label={`Remove ${u.email}`}
+              title={isSelf ? "You can't remove your own account" : `Remove ${u.email}`}
+              disabled={isSelf}
+              onClick={() => setDeleteTarget(u)}
+              className="rounded p-1 text-on-surface-variant hover:text-error disabled:cursor-not-allowed disabled:opacity-30 focus:outline-none focus-visible:ring-2 focus-visible:ring-error"
+            >
+              <Icon name="delete" className="text-[20px]" />
+            </button>
           </div>
         );
       },
@@ -214,6 +237,14 @@ export function UsersPage() {
                 >
                   {u.role === "admin" ? "Revoke admin" : "Make admin"}
                 </Button>
+                <Button
+                  variant="danger-outline"
+                  size="sm"
+                  icon="delete"
+                  aria-label={`Remove ${u.email}`}
+                  disabled={u.id === currentUser?.id}
+                  onClick={() => setDeleteTarget(u)}
+                />
               </div>
             </div>
           )}
@@ -233,6 +264,37 @@ export function UsersPage() {
         open={resetTarget !== null}
         onClose={() => setResetTarget(null)}
       />
+
+      {/* Deleting an account is irreversible — name the exact user. */}
+      <Modal
+        open={deleteTarget !== null}
+        onClose={() => setDeleteTarget(null)}
+        role="alertdialog"
+        title="Remove this account?"
+        footer={
+          <>
+            <Button
+              variant="secondary"
+              onClick={() => setDeleteTarget(null)}
+              disabled={deleteUser.isPending}
+            >
+              Cancel
+            </Button>
+            <Button
+              variant="danger"
+              loading={deleteUser.isPending}
+              onClick={() => deleteTarget && applyDelete(deleteTarget)}
+            >
+              Remove account
+            </Button>
+          </>
+        }
+      >
+        <p>
+          <span className="font-bold text-on-surface">{deleteTarget?.email}</span> will permanently
+          lose access to BitVault. This cannot be undone.
+        </p>
+      </Modal>
 
       {/* Granting admin is a privilege escalation — never a bare one-click. */}
       <Modal

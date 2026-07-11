@@ -99,8 +99,8 @@ export function LoginPage() {
           </div>
           {showResetHint && (
             <p className="rounded-lg bg-surface-container-low px-md py-sm text-body-sm text-on-surface-variant">
-              Password resets aren&apos;t self-service yet. Ask your administrator to reset it for
-              you.
+              Password resets aren&apos;t self-service. Ask an administrator to reset it for you
+              from the Users page.
             </p>
           )}
         </div>

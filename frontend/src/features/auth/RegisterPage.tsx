@@ -71,7 +71,7 @@ export function RegisterPage() {
   return (
     <AuthShell
       heading="Create your account"
-      subheading="Register to access the inventory workspace"
+      subheading="Use your @withbitnob.com work email"
       footer={
         <p className="text-body-sm text-on-surface-variant">
           Already have an account?{" "}

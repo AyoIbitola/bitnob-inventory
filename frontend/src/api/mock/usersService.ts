@@ -26,4 +26,11 @@ export const mockUsersService: UsersService = {
     if (!entry) throw new ApiError(404, "User not found.");
     entry.password = newPassword;
   },
+
+  async remove(id: string): Promise<void> {
+    await delay();
+    const key = Object.keys(mockUsers).find((k) => mockUsers[k].id === id);
+    if (!key) throw new ApiError(404, "User not found.");
+    delete mockUsers[key];
+  },
 };
