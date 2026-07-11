@@ -1,0 +1,169 @@
+import { SidePanel } from "@/components/SidePanel";
+import { Button } from "@/components/Button";
+import { Badge, StatusBadge } from "@/components/Badge";
+import { Icon } from "@/components/Icon";
+import { RoleGate } from "@/auth/guards";
+import { useSettings } from "@/settings/SettingsContext";
+import { formatDate, formatNumber, formatPrice } from "@/lib/format";
+import { imageStore } from "@/lib/imageStore";
+import type { Item, ProductGroup } from "@/types";
+
+interface ProductDetailPanelProps {
+  group: ProductGroup | null;
+  open: boolean;
+  onClose: () => void;
+  onEditUnit: (unit: Item) => void;
+  onDeleteUnit: (unit: Item) => void;
+  onAddUnits: (group: ProductGroup) => void;
+}
+
+/**
+ * Product detail: summary of the model, then EVERY individual unit with its own
+ * serial number (product ID) — which is the whole point of the unit-level model.
+ * Admins can edit/delete each unit and add more units of this product.
+ */
+export function ProductDetailPanel({
+  group,
+  open,
+  onClose,
+  onEditUnit,
+  onDeleteUnit,
+  onAddUnits,
+}: ProductDetailPanelProps) {
+  const { settings } = useSettings();
+  const currency = settings.currency;
+
+  return (
+    <SidePanel
+      open={open}
+      onClose={onClose}
+      title="Product Details"
+      footer={
+        group && (
+          <RoleGate role="admin">
+            <Button icon="add" fullWidth onClick={() => onAddUnits(group)}>
+              Add Units
+            </Button>
+          </RoleGate>
+        )
+      }
+    >
+      {!group ? (
+        <p className="py-xl text-center text-on-surface-variant">Product not found.</p>
+      ) : (
+        <div>
+          {/* Identity */}
+          <div className="mb-lg flex flex-col items-center text-center">
+            <div className="mb-md flex h-[110px] w-[110px] items-center justify-center overflow-hidden rounded-lg border border-outline-variant bg-surface-container">
+              {imageStore.get(group.units[0]?.id ?? "") ? (
+                <img
+                  src={imageStore.get(group.units[0].id) as string}
+                  alt={group.name}
+                  className="h-full w-full object-cover"
+                />
+              ) : (
+                <Icon name="inventory_2" className="text-5xl text-outline-variant" />
+              )}
+            </div>
+            <h3 className="text-headline-sm font-bold text-on-surface">{group.name}</h3>
+            {group.category && (
+              <div className="mt-sm">
+                <Badge>{group.category}</Badge>
+              </div>
+            )}
+            <div className="mt-sm">
+              <StatusBadge status={group.status} dot />
+            </div>
+          </div>
+
+          {/* Legacy data warning — surface bad data instead of hiding it. */}
+          {group.hasLegacyRows && (
+            <div className="mb-lg flex items-start gap-sm rounded-lg border border-status-warning-fg/30 bg-status-warning-bg/60 px-md py-sm text-body-sm text-status-warning-fg">
+              <Icon name="warning" className="mt-0.5 text-[18px]" />
+              <span>
+                One or more records below use a single serial number for multiple units. Each
+                physical unit needs its own serial — split these into individual records.
+              </span>
+            </div>
+          )}
+
+          {/* Rollup */}
+          <dl className="mb-xl grid grid-cols-2 gap-sm">
+            <Stat label="Total Units" value={formatNumber(group.totalUnits)} />
+            <Stat label="Unit Price" value={formatPrice(group.unitPrice, currency)} />
+            <Stat label="Total Value" value={formatPrice(group.totalValue, currency)} />
+            <Stat label="Last Updated" value={formatDate(group.updatedAt)} />
+          </dl>
+
+          {/* The units */}
+          <h4 className="mb-sm flex items-center justify-between text-label-caps uppercase tracking-wider text-on-surface-variant">
+            <span>Units ({group.units.length})</span>
+          </h4>
+
+          <ul className="divide-y divide-outline-variant overflow-hidden rounded-lg border border-outline-variant">
+            {group.units.map((unit) => (
+              <li
+                key={unit.id}
+                className="flex items-center justify-between gap-md px-md py-sm hover:bg-surface-container-low"
+              >
+                <div className="min-w-0">
+                  <code className="block truncate text-body-sm font-semibold text-on-surface">
+                    {unit.serialNumber}
+                  </code>
+                  <span className="text-body-sm text-on-surface-variant">
+                    {formatPrice(unit.price, currency)}
+                    {unit.quantity > 1 && (
+                      <span className="ml-xs font-semibold text-status-warning-fg">
+                        · {unit.quantity} units on one serial
+                      </span>
+                    )}
+                  </span>
+                </div>
+                <RoleGate role="admin">
+                  <div className="flex flex-shrink-0 gap-sm">
+                    <button
+                      type="button"
+                      aria-label={`Edit unit ${unit.serialNumber}`}
+                      onClick={() => onEditUnit(unit)}
+                      className="rounded p-1 text-on-surface-variant hover:text-primary focus:outline-none focus-visible:ring-2 focus-visible:ring-primary-container"
+                    >
+                      <Icon name="edit" className="text-[20px]" />
+                    </button>
+                    <button
+                      type="button"
+                      aria-label={`Delete unit ${unit.serialNumber}`}
+                      onClick={() => onDeleteUnit(unit)}
+                      className="rounded p-1 text-on-surface-variant hover:text-error focus:outline-none focus-visible:ring-2 focus-visible:ring-error"
+                    >
+                      <Icon name="delete" className="text-[20px]" />
+                    </button>
+                  </div>
+                </RoleGate>
+              </li>
+            ))}
+          </ul>
+
+          {group.units[0]?.description && (
+            <div className="mt-xl">
+              <h4 className="mb-sm text-label-caps uppercase tracking-wider text-on-surface-variant">
+                Description
+              </h4>
+              <p className="text-body-sm leading-relaxed text-on-surface-variant">
+                {group.units[0].description}
+              </p>
+            </div>
+          )}
+        </div>
+      )}
+    </SidePanel>
+  );
+}
+
+function Stat({ label, value }: { label: string; value: string }) {
+  return (
+    <div className="rounded-lg border border-outline-variant bg-surface-container-low px-md py-sm">
+      <dt className="text-label-caps uppercase tracking-wider text-on-surface-variant">{label}</dt>
+      <dd className="mt-0.5 text-body-md font-semibold text-on-surface">{value}</dd>
+    </div>
+  );
+}

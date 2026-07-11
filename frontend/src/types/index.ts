@@ -21,29 +21,62 @@ export interface User {
 }
 
 /**
- * Stock status is NOT stored by the backend. Derived client-side from quantity.
- * Thresholds are a frontend assumption — confirm with the team.
+ * Stock status is NOT stored by the backend. Derived client-side from the
+ * number of UNITS a product has, against a threshold configurable in Settings.
  */
 export type StockStatus = "in_stock" | "low_stock" | "out_of_stock";
 
+/**
+ * A single physical UNIT of stock.
+ *
+ * The backend enforces `serial_number` UNIQUE — so one row = one physical unit,
+ * and the serial IS that unit's product ID. `quantity` should therefore be 1;
+ * rows with quantity > 1 are legacy bad data and are flagged in the UI.
+ */
 export interface Item {
   /** Frontend keeps ids as strings; backend uses integers (mapped at boundary). */
   id: string;
-  /** Backend `serial_number`. Unique hardware identifier (acts as SKU). */
+  /** Backend `serial_number` — this unit's unique product ID. */
   serialNumber: string;
   brand: string;
   /** Backend `model_no`. */
   modelNo?: string;
   category?: string;
   description?: string;
+  /** Physical units this row represents. Should be 1 (see legacy note above). */
   quantity: number;
-  /** Backend `price` — nullable bare number, no currency attached. */
+  /** Backend `price` — the UNIT price (nullable bare number, no currency). */
   price?: number;
-  /** Display currency, injected from config (not from the backend). */
-  currency: string;
-  /** Derived client-side from quantity. */
-  status: StockStatus;
   createdAt?: string;
+  updatedAt: string;
+}
+
+/**
+ * A PRODUCT — i.e. a model of hardware (brand + model + category), composed of
+ * the individual units that belong to it. This is what the inventory table
+ * lists; drilling in reveals each unit and its serial/product ID.
+ *
+ * Purely a client-side aggregation: the backend has no product/group concept.
+ */
+export interface ProductGroup {
+  /** Stable identity: brand|model|category. */
+  key: string;
+  name: string;
+  brand: string;
+  modelNo?: string;
+  category?: string;
+  /** The individual unit records making up this product. */
+  units: Item[];
+  /** Total physical units (sum of unit quantities). */
+  totalUnits: number;
+  /** Unit price (from the units; undefined if none priced). */
+  unitPrice?: number;
+  /** unitPrice × units — the overall value held in this product. */
+  totalValue: number;
+  status: StockStatus;
+  /** True if any unit row has quantity > 1 (one serial covering many units). */
+  hasLegacyRows: boolean;
+  /** Most recently updated unit. */
   updatedAt: string;
 }
 

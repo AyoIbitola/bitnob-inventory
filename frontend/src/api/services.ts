@@ -1,15 +1,4 @@
-import type {
-  AiSearchResult,
-  AuthSession,
-  Category,
-  Credentials,
-  InventorySummary,
-  Item,
-  ItemInput,
-  ItemQuery,
-  Paginated,
-  User,
-} from "@/types";
+import type { AiSearchResult, AuthSession, Credentials, Item, ItemInput, User } from "@/types";
 
 /**
  * Service contracts. Components and hooks depend on THESE interfaces, never on
@@ -27,20 +16,23 @@ export interface AuthService {
   register(credentials: Credentials): Promise<User>;
 }
 
+export interface ItemsService {
+  /**
+   * All unit records. The backend returns a plain array (no pagination), so we
+   * fetch once and derive grouping/filtering/paging/summary client-side. When
+   * the backend adds pagination + server search, narrow this signature.
+   */
+  list(): Promise<Item[]>;
+  get(id: string): Promise<Item>;
+  create(input: ItemInput): Promise<Item>;
+  update(id: string, input: Partial<ItemInput>): Promise<Item>;
+  remove(id: string): Promise<void>;
+  /** AI-powered natural-language search (POST /search). */
+  aiSearch(query: string): Promise<AiSearchResult>;
+}
+
 export interface UsersService {
   list(): Promise<User[]>;
   /** Promote/demote a user's admin flag. Admin-only on the backend. */
   setAdmin(id: string, isAdmin: boolean): Promise<User>;
-}
-
-export interface ItemsService {
-  list(query: ItemQuery): Promise<Paginated<Item>>;
-  get(id: string): Promise<Item>;
-  create(input: ItemInput): Promise<Item>;
-  update(id: string, input: ItemInput): Promise<Item>;
-  remove(id: string): Promise<void>;
-  categories(): Promise<Category[]>;
-  summary(): Promise<InventorySummary>;
-  /** AI-powered natural-language search (POST /search). */
-  aiSearch(query: string): Promise<AiSearchResult>;
 }

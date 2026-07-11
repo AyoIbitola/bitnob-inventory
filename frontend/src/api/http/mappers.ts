@@ -1,5 +1,4 @@
-import { CURRENCY } from "@/config";
-import type { Item, ItemInput, Role, StockStatus, User } from "@/types";
+import type { Item, ItemInput, Role, User } from "@/types";
 import { initialsFrom } from "@/lib/format";
 
 /** ---- Backend wire types (mirror of the OpenAPI schemas) ---- */
@@ -34,15 +33,9 @@ export interface UserOut {
   created_at: string;
 }
 
-/** ---- Derivations & mapping ---- */
+/** ---- Mapping ---- */
 
-/** Stock status is a frontend concept — derived from quantity. */
-export function deriveStatus(quantity: number): StockStatus {
-  if (quantity <= 0) return "out_of_stock";
-  if (quantity <= 10) return "low_stock";
-  return "in_stock";
-}
-
+/** One backend row = one physical unit (serial_number is unique). */
 export function toItem(p: ProductOut): Item {
   return {
     id: String(p.id),
@@ -53,23 +46,22 @@ export function toItem(p: ProductOut): Item {
     description: p.description ?? undefined,
     quantity: p.quantity,
     price: p.price ?? undefined,
-    currency: CURRENCY,
-    status: deriveStatus(p.quantity),
     createdAt: p.created_at,
     updatedAt: p.updated_at,
   };
 }
 
-export function toProductWrite(input: ItemInput): ProductWrite {
-  return {
-    serial_number: input.serialNumber,
-    brand: input.brand,
-    model_no: input.modelNo ?? null,
-    category: input.category ?? null,
-    description: input.description ?? null,
-    quantity: input.quantity,
-    price: input.price ?? null,
-  };
+/** Partial-safe: only send keys the caller actually set (PATCH semantics). */
+export function toProductWrite(input: Partial<ItemInput>): Partial<ProductWrite> {
+  const out: Partial<ProductWrite> = {};
+  if (input.serialNumber !== undefined) out.serial_number = input.serialNumber;
+  if (input.brand !== undefined) out.brand = input.brand;
+  if (input.modelNo !== undefined) out.model_no = input.modelNo || null;
+  if (input.category !== undefined) out.category = input.category || null;
+  if (input.description !== undefined) out.description = input.description || null;
+  if (input.quantity !== undefined) out.quantity = input.quantity;
+  if (input.price !== undefined) out.price = input.price ?? null;
+  return out;
 }
 
 const roleFor = (isAdmin: boolean): Role => (isAdmin ? "admin" : "staff");

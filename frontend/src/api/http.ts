@@ -25,6 +25,16 @@ export function registerTokenProvider(fn: () => string | null) {
   getToken = fn;
 }
 
+/**
+ * Called when the server rejects our token (expired/invalid). The auth layer
+ * registers a handler that clears the session and bounces to /login, so an
+ * expired token never leaves the user staring at silent failures.
+ */
+let onUnauthorized: () => void = () => {};
+export function registerUnauthorizedHandler(fn: () => void) {
+  onUnauthorized = fn;
+}
+
 interface RequestOptions extends Omit<RequestInit, "body"> {
   body?: unknown;
   /** Query params serialized onto the URL. */
@@ -61,8 +71,22 @@ export async function request<T>(path: string, options: RequestOptions = {}): Pr
   const parsed = text ? safeJson(text) : undefined;
 
   if (!res.ok) {
+    // FastAPI returns errors as { detail: string | [...] }.
+    const body = parsed as { detail?: unknown; message?: string } | undefined;
+    const detail = body?.detail;
     const message =
-      (parsed as { message?: string } | undefined)?.message ?? `Request failed (${res.status})`;
+      (typeof detail === "string" ? detail : undefined) ??
+      body?.message ??
+      (Array.isArray(detail) ? "Some fields are invalid." : undefined) ??
+      `Request failed (${res.status})`;
+
+    // An expired/invalid token anywhere in the app ends the session once.
+    // (Login itself returns 401 for bad credentials — don't nuke the session
+    // for that; the user has no session to lose.)
+    if (res.status === 401 && !path.startsWith("/auth/login")) {
+      onUnauthorized();
+    }
+
     throw new ApiError(res.status, message, parsed);
   }
 

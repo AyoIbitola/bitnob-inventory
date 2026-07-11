@@ -1,8 +1,7 @@
 import type { ItemsService } from "@/api/services";
-import type { AiSearchResult, Item, ItemInput, ItemQuery, Paginated } from "@/types";
+import type { AiSearchResult, Item, ItemInput } from "@/types";
 import { ApiError } from "@/api/http";
-import { CURRENCY, DEFAULT_PAGE_SIZE } from "@/config";
-import { deriveStatus, mockItems } from "./data";
+import { mockItems } from "./data";
 import { itemDisplayName } from "@/lib/format";
 
 const delay = (ms = 400) => new Promise((r) => setTimeout(r, ms));
@@ -10,36 +9,13 @@ const delay = (ms = 400) => new Promise((r) => setTimeout(r, ms));
 let items: Item[] = [...mockItems];
 
 export const mockItemsService: ItemsService = {
-  async list(query: ItemQuery): Promise<Paginated<Item>> {
+  async list(): Promise<Item[]> {
     await delay();
-    const search = query.search?.trim().toLowerCase();
-
-    let filtered = items.filter((item) => {
-      if (query.category && item.category !== query.category) return false;
-      if (query.status && item.status !== query.status) return false;
-      if (search) {
-        const haystack =
-          `${itemDisplayName(item)} ${item.serialNumber} ${item.category ?? ""}`.toLowerCase();
-        if (!haystack.includes(search)) return false;
-      }
-      return true;
-    });
-
-    filtered = filtered.sort((a, b) => b.updatedAt.localeCompare(a.updatedAt));
-
-    const page = query.page ?? 1;
-    const pageSize = query.pageSize ?? DEFAULT_PAGE_SIZE;
-    const start = (page - 1) * pageSize;
-    return {
-      data: filtered.slice(start, start + pageSize),
-      page,
-      pageSize,
-      total: filtered.length,
-    };
+    return [...items];
   },
 
   async get(id: string): Promise<Item> {
-    await delay(250);
+    await delay(200);
     const item = items.find((i) => i.id === id);
     if (!item) throw new ApiError(404, "Item not found.");
     return item;
@@ -47,11 +23,13 @@ export const mockItemsService: ItemsService = {
 
   async create(input: ItemInput): Promise<Item> {
     await delay();
+    // Mirror the backend's UNIQUE serial_number constraint.
+    if (items.some((i) => i.serialNumber === input.serialNumber)) {
+      throw new ApiError(400, "Product with this serial number already exists");
+    }
     const item: Item = {
       ...input,
-      id: `mock-${Date.now()}`,
-      currency: CURRENCY,
-      status: deriveStatus(input.quantity),
+      id: `mock-${Date.now()}-${Math.random().toString(36).slice(2, 7)}`,
       createdAt: new Date().toISOString(),
       updatedAt: new Date().toISOString(),
     };
@@ -59,16 +37,11 @@ export const mockItemsService: ItemsService = {
     return item;
   },
 
-  async update(id: string, input: ItemInput): Promise<Item> {
+  async update(id: string, input: Partial<ItemInput>): Promise<Item> {
     await delay();
     const index = items.findIndex((i) => i.id === id);
     if (index === -1) throw new ApiError(404, "Item not found.");
-    const updated: Item = {
-      ...items[index],
-      ...input,
-      status: deriveStatus(input.quantity),
-      updatedAt: new Date().toISOString(),
-    };
+    const updated: Item = { ...items[index], ...input, updatedAt: new Date().toISOString() };
     items = items.map((i) => (i.id === id ? updated : i));
     return updated;
   },
@@ -79,35 +52,18 @@ export const mockItemsService: ItemsService = {
     items = items.filter((i) => i.id !== id);
   },
 
-  async categories() {
-    await delay(150);
-    const names = Array.from(
-      new Set(items.map((i) => i.category).filter((c): c is string => !!c)),
-    ).sort();
-    return names.map((name) => ({ id: name, name }));
-  },
-
-  async summary() {
-    await delay(200);
-    return {
-      totalItems: items.length,
-      totalValue: items.reduce((sum, i) => sum + (i.price ?? 0) * i.quantity, 0),
-      currency: CURRENCY,
-      lowStock: items.filter((i) => i.status === "low_stock").length,
-      outOfStock: items.filter((i) => i.status === "out_of_stock").length,
-    };
-  },
-
   async aiSearch(query: string): Promise<AiSearchResult> {
     await delay(700);
     const q = query.toLowerCase();
     const matched = items.filter((i) =>
-      `${itemDisplayName(i)} ${i.category ?? ""} ${i.description ?? ""}`.toLowerCase().includes(q),
+      `${itemDisplayName(i)} ${i.category ?? ""} ${i.description ?? ""} ${i.serialNumber}`
+        .toLowerCase()
+        .includes(q),
     );
     return {
       answer: matched.length
-        ? `Found ${matched.length} item(s) matching “${query}”.`
-        : `No items matched “${query}”.`,
+        ? `Found ${matched.length} unit(s) matching “${query}”.`
+        : `No units matched “${query}”.`,
       items: matched,
     };
   },

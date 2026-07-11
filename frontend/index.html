@@ -9,10 +9,30 @@
       href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap"
       rel="stylesheet"
     />
+    <!-- display=block: the icon font must NOT fall back to rendering its
+         ligature names as raw text ("inventory_2") while loading. -->
     <link
-      href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:opsz,wght,FILL,GRAD@20..48,100..700,0..1,-50..200&display=swap"
+      href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:opsz,wght,FILL,GRAD@20..48,100..700,0..1,-50..200&display=block"
       rel="stylesheet"
     />
+    <script>
+      // Belt-and-braces: keep icon glyphs invisible until the icon font is
+      // actually ready, then reveal. Prevents any flash of ligature text.
+      if (document.fonts && document.fonts.load) {
+        document.fonts
+          .load('24px "Material Symbols Outlined"')
+          .catch(function () {})
+          .finally(function () {
+            document.documentElement.classList.add("icons-ready");
+          });
+        // Safety net if the font never resolves (offline/blocked).
+        setTimeout(function () {
+          document.documentElement.classList.add("icons-ready");
+        }, 3000);
+      } else {
+        document.documentElement.classList.add("icons-ready");
+      }
+    </script>
     <title>BitVault</title>
   </head>
   <body>

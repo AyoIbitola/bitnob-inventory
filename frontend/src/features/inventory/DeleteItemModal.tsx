@@ -11,14 +11,12 @@ interface DeleteItemModalProps {
   item: Item | null;
   open: boolean;
   onClose: () => void;
-  /** Called after a successful delete (e.g. to close an open detail panel). */
   onDeleted?: (item: Item) => void;
 }
 
 /**
- * Destructive confirmation. role="alertdialog" (via Modal), names the specific
- * item, and blocks while the request is in flight. Surfaces server errors
- * inline rather than closing optimistically.
+ * Destructive confirmation for removing ONE unit. Names the exact serial so an
+ * admin can't delete the wrong physical device by accident.
  */
 export function DeleteItemModal({ item, open, onClose, onDeleted }: DeleteItemModalProps) {
   const deleteItem = useDeleteItem();
@@ -33,7 +31,7 @@ export function DeleteItemModal({ item, open, onClose, onDeleted }: DeleteItemMo
       onDeleted?.(item);
       onClose();
     } catch (err) {
-      setError(err instanceof ApiError ? err.message : "Failed to delete. Please try again.");
+      setError(err instanceof ApiError ? err.message : "Couldn't delete. Please try again.");
     }
   }
 
@@ -42,7 +40,7 @@ export function DeleteItemModal({ item, open, onClose, onDeleted }: DeleteItemMo
       open={open}
       onClose={onClose}
       role="alertdialog"
-      title="Delete this item?"
+      title="Delete this unit?"
       footer={
         <>
           <Button variant="secondary" onClick={onClose} disabled={deleteItem.isPending}>
@@ -54,17 +52,16 @@ export function DeleteItemModal({ item, open, onClose, onDeleted }: DeleteItemMo
         </>
       }
     >
-      <p className="leading-relaxed">
-        This will permanently remove{" "}
-        <span className="font-bold text-on-surface">{item ? itemDisplayName(item) : ""}</span> from
-        inventory. This action
-        cannot be undone.
-      </p>
       {error && (
-        <p className="mt-sm text-body-sm text-error" role="alert">
+        <p role="alert" className="mb-md text-body-sm text-error">
           {error}
         </p>
       )}
+      <p>
+        This permanently removes the unit{" "}
+        <code className="font-bold text-on-surface">{item?.serialNumber}</code>
+        {item && <> ({itemDisplayName(item)})</>} from inventory. This action cannot be undone.
+      </p>
     </Modal>
   );
 }

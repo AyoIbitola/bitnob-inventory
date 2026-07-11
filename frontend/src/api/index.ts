@@ -17,5 +17,5 @@ export const authService: AuthService = USE_MOCK_API ? mockAuthService : httpAut
 export const itemsService: ItemsService = USE_MOCK_API ? mockItemsService : httpItemsService;
 export const usersService: UsersService = USE_MOCK_API ? mockUsersService : httpUsersService;
 
-export { ApiError, registerTokenProvider } from "./http";
+export { ApiError, registerTokenProvider, registerUnauthorizedHandler } from "./http";
 export type { AuthService, ItemsService, UsersService } from "./services";

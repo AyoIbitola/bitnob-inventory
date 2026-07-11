@@ -1,6 +1,6 @@
 import { createContext, useCallback, useContext, useEffect, useMemo, useRef, useState } from "react";
 import type { ReactNode } from "react";
-import { authService, registerTokenProvider } from "@/api";
+import { authService, registerTokenProvider, registerUnauthorizedHandler } from "@/api";
 import type { AuthSession, Credentials, Role, User } from "@/types";
 
 const TOKEN_STORAGE_KEY = "bitvault.token";
@@ -49,6 +49,12 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     localStorage.removeItem(TOKEN_STORAGE_KEY);
     setUser(null);
   }, []);
+
+  // Any 401 from the API (expired/invalid token) ends the session immediately,
+  // so the user is sent to /login instead of hitting silent failures.
+  useEffect(() => {
+    registerUnauthorizedHandler(() => clearSession());
+  }, [clearSession]);
 
   // Restore a persisted session on first mount.
   useEffect(() => {

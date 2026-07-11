@@ -17,6 +17,16 @@
     font-variation-settings: "FILL" 0, "wght" 400, "GRAD" 0, "opsz" 24;
     -webkit-user-select: none;
     user-select: none;
+    /* Reserve space and stay invisible until the icon font is ready, so the
+       ligature name never renders as raw text. `.icons-ready` is set in
+       index.html once document.fonts resolves. */
+    visibility: hidden;
+    display: inline-block;
+    min-width: 1em;
+  }
+
+  html.icons-ready .material-symbols-outlined {
+    visibility: visible;
   }
 }
 

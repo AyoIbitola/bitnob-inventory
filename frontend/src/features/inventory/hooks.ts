@@ -1,24 +1,23 @@
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { itemsService } from "@/api";
-import type { ItemInput, ItemQuery } from "@/types";
+import type { Item, ItemInput } from "@/types";
 
-/**
- * Query-key factory — centralizing keys keeps cache invalidation consistent and
- * refactor-safe. Consumers never hand-write string keys.
- */
+/** One query key backs the table, categories, summary and notifications. */
 export const itemKeys = {
   all: ["items"] as const,
-  list: (query: ItemQuery) => ["items", "list", query] as const,
   detail: (id: string) => ["items", "detail", id] as const,
-  categories: ["categories"] as const,
 };
 
-/** Paginated + filtered item list. `keepPreviousData` avoids table flicker on page change. */
-export function useItems(query: ItemQuery) {
+/**
+ * The whole catalog. The backend has no pagination/summary/category endpoints,
+ * so we fetch once and derive everything from this single cached list — one
+ * request instead of three.
+ */
+export function useItems(options?: { refetchInterval?: number }) {
   return useQuery({
-    queryKey: itemKeys.list(query),
-    queryFn: () => itemsService.list(query),
-    placeholderData: (prev) => prev,
+    queryKey: itemKeys.all,
+    queryFn: () => itemsService.list(),
+    refetchInterval: options?.refetchInterval,
   });
 }
 
@@ -27,31 +26,6 @@ export function useItem(id: string | null) {
     queryKey: itemKeys.detail(id ?? ""),
     queryFn: () => itemsService.get(id as string),
     enabled: !!id,
-  });
-}
-
-/** Full catalog (backend returns all products anyway) — used by the Categories
- *  and Reports views for client-side aggregation. */
-export function useAllItems() {
-  return useQuery({
-    queryKey: ["items", "all"] as const,
-    queryFn: () => itemsService.list({ page: 1, pageSize: 10_000 }).then((r) => r.data),
-  });
-}
-
-export function useInventorySummary() {
-  return useQuery({
-    queryKey: ["items", "summary"] as const,
-    queryFn: () => itemsService.summary(),
-    staleTime: 60 * 1000,
-  });
-}
-
-export function useCategories() {
-  return useQuery({
-    queryKey: itemKeys.categories,
-    queryFn: () => itemsService.categories(),
-    staleTime: 5 * 60 * 1000, // categories rarely change
   });
 }
 
@@ -66,12 +40,9 @@ export function useCreateItem() {
 export function useUpdateItem() {
   const qc = useQueryClient();
   return useMutation({
-    mutationFn: ({ id, input }: { id: string; input: ItemInput }) =>
+    mutationFn: ({ id, input }: { id: string; input: Partial<ItemInput> }) =>
       itemsService.update(id, input),
-    onSuccess: (updated) => {
-      qc.invalidateQueries({ queryKey: itemKeys.all });
-      qc.setQueryData(itemKeys.detail(updated.id), updated);
-    },
+    onSuccess: () => qc.invalidateQueries({ queryKey: itemKeys.all }),
   });
 }
 
@@ -79,6 +50,44 @@ export function useDeleteItem() {
   const qc = useQueryClient();
   return useMutation({
     mutationFn: (id: string) => itemsService.remove(id),
+    onSuccess: () => qc.invalidateQueries({ queryKey: itemKeys.all }),
+  });
+}
+
+/** Create many units of one product in a single action (one row per serial). */
+export function useCreateUnits() {
+  const qc = useQueryClient();
+  return useMutation({
+    mutationFn: async (inputs: ItemInput[]) => {
+      const created: Item[] = [];
+      const failed: Array<{ serialNumber: string; message: string }> = [];
+      // Sequential: the backend rejects duplicate serials, and we want to report
+      // exactly which ones failed rather than aborting the whole batch.
+      for (const input of inputs) {
+        try {
+          created.push(await itemsService.create(input));
+        } catch (err) {
+          failed.push({
+            serialNumber: input.serialNumber,
+            message: err instanceof Error ? err.message : "Failed",
+          });
+        }
+      }
+      return { created, failed };
+    },
+    onSuccess: () => qc.invalidateQueries({ queryKey: itemKeys.all }),
+  });
+}
+
+/** Bulk-rename a category by patching every unit that carries it. */
+export function useRenameCategory() {
+  const qc = useQueryClient();
+  return useMutation({
+    mutationFn: async ({ items, to }: { items: Item[]; to: string }) => {
+      for (const item of items) {
+        await itemsService.update(item.id, { category: to });
+      }
+    },
     onSuccess: () => qc.invalidateQueries({ queryKey: itemKeys.all }),
   });
 }

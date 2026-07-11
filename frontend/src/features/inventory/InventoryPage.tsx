@@ -9,15 +9,15 @@ import { StatCard } from "@/components/StatCard";
 import { Pagination } from "@/components/Pagination";
 import { SelectField } from "@/components/FormField";
 import { RoleGate } from "@/auth/guards";
-import { useAuth } from "@/auth/AuthContext";
+import { useSettings } from "@/settings/SettingsContext";
 import { useDebouncedValue } from "@/hooks/useDebouncedValue";
-import { formatDate, formatNumber, formatPrice, itemDisplayName } from "@/lib/format";
-import { imageStore } from "@/lib/imageStore";
-import { DEFAULT_PAGE_SIZE } from "@/config";
-import type { Item, StockStatus } from "@/types";
-import { useCategories, useInventorySummary, useItems } from "./hooks";
-import { ItemDetailPanel } from "./ItemDetailPanel";
-import { ItemFormPanel } from "./ItemFormPanel";
+import { formatNumber, formatPrice } from "@/lib/format";
+import type { Item, ProductGroup, StockStatus } from "@/types";
+import { useItems } from "./hooks";
+import { groupItems } from "./grouping";
+import { ProductDetailPanel } from "./ProductDetailPanel";
+import { ProductFormPanel } from "./ProductFormPanel";
+import { UnitFormPanel } from "./UnitFormPanel";
 import { DeleteItemModal } from "./DeleteItemModal";
 import { AiSearchDialog } from "./AiSearchDialog";
 
@@ -29,146 +29,146 @@ const STATUS_OPTIONS: Array<{ value: StockStatus | ""; label: string }> = [
 ];
 
 /**
- * Inventory workspace, role-adaptive. Staff get browse/search/filter/detail;
- * admins additionally get Add, an Actions column, and edit/delete — all via
- * <RoleGate>, so controls never render for staff (req #3).
+ * Inventory workspace. Lists PRODUCTS (brand + model + category); each row
+ * aggregates the individual units beneath it. Click a product to see every unit
+ * and its serial (product ID). Admin-only controls are wrapped in <RoleGate>.
  */
 export function InventoryPage() {
   const { openNav } = useLayout();
-  const { hasRole } = useAuth();
-  const isAdmin = hasRole("admin");
+  const { settings } = useSettings();
+  const { currency, lowStockThreshold, pageSize } = settings;
 
-  // Filters
+  const { data: items, isLoading, isError, refetch } = useItems();
+
   const [searchInput, setSearchInput] = useState("");
-  const search = useDebouncedValue(searchInput, 300);
+  const search = useDebouncedValue(searchInput, 250);
   const [category, setCategory] = useState("");
   const [status, setStatus] = useState<StockStatus | "">("");
   const [page, setPage] = useState(1);
 
-  const query = useMemo(
-    () => ({
-      search: search || undefined,
-      category: category || undefined,
-      status: status || undefined,
-      page,
-      pageSize: DEFAULT_PAGE_SIZE,
-    }),
-    [search, category, status, page],
-  );
-
-  const { data, isLoading, isError, refetch, isPlaceholderData } = useItems(query);
-  const { data: categories } = useCategories();
-  const summary = useInventorySummary();
-
   // Overlays
-  const [detailId, setDetailId] = useState<string | null>(null);
-  const [formItem, setFormItem] = useState<Item | null>(null);
-  const [formOpen, setFormOpen] = useState(false);
+  const [detailKey, setDetailKey] = useState<string | null>(null);
+  const [productFormOpen, setProductFormOpen] = useState(false);
+  /** When adding units to an existing product, pre-fill its brand/model/category. */
+  const [prefill, setPrefill] = useState<ProductGroup | null>(null);
+  const [editUnit, setEditUnit] = useState<Item | null>(null);
   const [deleteTarget, setDeleteTarget] = useState<Item | null>(null);
   const [aiOpen, setAiOpen] = useState(false);
 
-  function openCreate() {
-    setFormItem(null);
-    setFormOpen(true);
-  }
-  function openEdit(item: Item) {
-    setFormItem(item);
-    setFormOpen(true);
-    setDetailId(null);
-  }
-  function openDelete(item: Item) {
-    setDeleteTarget(item);
-    setDetailId(null);
+  const allGroups = useMemo(
+    () => groupItems(items ?? [], lowStockThreshold),
+    [items, lowStockThreshold],
+  );
+
+  const categories = useMemo(
+    () =>
+      Array.from(new Set((items ?? []).map((i) => i.category).filter((c): c is string => !!c))).sort(
+        (a, b) => a.localeCompare(b),
+      ),
+    [items],
+  );
+
+  const filtered = useMemo(() => {
+    const q = search.trim().toLowerCase();
+    return allGroups
+      .filter((g) => {
+        if (category && g.category !== category) return false;
+        if (status && g.status !== status) return false;
+        if (q) {
+          const haystack =
+            `${g.name} ${g.category ?? ""} ${g.units.map((u) => u.serialNumber).join(" ")}`.toLowerCase();
+          if (!haystack.includes(q)) return false;
+        }
+        return true;
+      })
+      .sort((a, b) => b.updatedAt.localeCompare(a.updatedAt));
+  }, [allGroups, category, status, search]);
+
+  const pageCount = Math.max(1, Math.ceil(filtered.length / pageSize));
+  const currentPage = Math.min(page, pageCount);
+  const pageRows = filtered.slice((currentPage - 1) * pageSize, currentPage * pageSize);
+
+  // Summary derived from the same fetch — no extra requests.
+  const summary = useMemo(() => {
+    const totalUnits = allGroups.reduce((s, g) => s + g.totalUnits, 0);
+    return {
+      products: allGroups.length,
+      totalUnits,
+      totalValue: allGroups.reduce((s, g) => s + g.totalValue, 0),
+      lowStock: allGroups.filter((g) => g.status === "low_stock").length,
+      outOfStock: allGroups.filter((g) => g.status === "out_of_stock").length,
+    };
+  }, [allGroups]);
+
+  const detailGroup = detailKey ? (allGroups.find((g) => g.key === detailKey) ?? null) : null;
+  const hasFilters = !!(search || category || status);
+  const isEmptyCatalog = !isLoading && !isError && allGroups.length === 0;
+
+  function resetFilters() {
+    setSearchInput("");
+    setCategory("");
+    setStatus("");
+    setPage(1);
   }
 
-  const columns = useMemo<Column<Item>[]>(() => {
-    const base: Column<Item>[] = [
-      {
-        key: "product",
-        header: "Product",
-        render: (item) => {
-          const img = imageStore.get(item.id);
-          return (
-            <div className="flex items-center gap-md">
-              <div className="flex h-10 w-10 flex-shrink-0 items-center justify-center overflow-hidden rounded bg-surface-variant">
-                {img ? (
-                  <img src={img} alt="" className="h-full w-full object-cover" />
-                ) : (
-                  <Icon name="inventory_2" className="text-[20px] text-on-surface-variant" />
-                )}
-              </div>
-              <div className="min-w-0">
-                <div className="truncate font-semibold text-on-surface">
-                  {itemDisplayName(item)}
-                </div>
-                <div className="text-body-sm text-on-surface-variant">{item.serialNumber}</div>
-              </div>
-            </div>
-          );
-        },
-      },
+  const columns = useMemo<Column<ProductGroup>[]>(
+    () => [
+      // Category first — standard inventory table ordering.
       {
         key: "category",
         header: "Category",
-        hideBelow: "md",
-        render: (item) => (item.category ? <Badge>{item.category}</Badge> : <span>—</span>),
-      },
-      { key: "stock", header: "Stock", render: (item) => formatNumber(item.quantity) },
-      { key: "status", header: "Status", render: (item) => <StatusBadge status={item.status} /> },
-      {
-        key: "price",
-        header: "Price",
-        align: "right",
-        hideBelow: "lg",
-        render: (item) => formatPrice(item.price, item.currency),
+        render: (g) => (g.category ? <Badge>{g.category}</Badge> : <span>—</span>),
       },
       {
-        key: "updated",
-        header: "Updated",
-        hideBelow: "lg",
-        render: (item) => (
-          <span className="text-body-sm text-on-surface-variant">{formatDate(item.updatedAt)}</span>
-        ),
-      },
-    ];
-
-    if (isAdmin) {
-      base.push({
-        key: "actions",
-        header: "Actions",
-        align: "right",
-        render: (item) => (
-          <div
-            className="flex justify-end gap-md opacity-60 transition-opacity group-hover:opacity-100"
-            onClick={(e) => e.stopPropagation()}
-          >
-            <button
-              type="button"
-              aria-label={`Edit ${itemDisplayName(item)}`}
-              className="text-on-surface-variant hover:text-primary"
-              onClick={() => openEdit(item)}
-            >
-              <Icon name="edit" />
-            </button>
-            <button
-              type="button"
-              aria-label={`Delete ${itemDisplayName(item)}`}
-              className="text-on-surface-variant hover:text-error"
-              onClick={() => openDelete(item)}
-            >
-              <Icon name="delete" />
-            </button>
+        key: "product",
+        header: "Product",
+        render: (g) => (
+          <div className="min-w-0">
+            <div className="flex items-center gap-sm">
+              <span className="truncate font-semibold text-on-surface">{g.name}</span>
+              {g.hasLegacyRows && (
+                <span title="One serial number covers multiple units — needs splitting">
+                  <Icon name="warning" className="text-[18px] text-status-warning-fg" />
+                </span>
+              )}
+            </div>
+            <div className="text-body-sm text-on-surface-variant">
+              {g.units.length} record{g.units.length === 1 ? "" : "s"}
+            </div>
           </div>
         ),
-      });
-    }
-    return base;
-  }, [isAdmin]);
+      },
+      {
+        key: "units",
+        header: "Units",
+        align: "right",
+        render: (g) => <span className="font-semibold">{formatNumber(g.totalUnits)}</span>,
+      },
+      {
+        key: "unitPrice",
+        header: "Unit Price",
+        align: "right",
+        hideBelow: "lg",
+        render: (g) => formatPrice(g.unitPrice, currency),
+      },
+      {
+        key: "totalValue",
+        header: "Total Value",
+        align: "right",
+        hideBelow: "lg",
+        render: (g) => (
+          <span className="font-semibold">{formatPrice(g.totalValue, currency)}</span>
+        ),
+      },
+      { key: "status", header: "Status", render: (g) => <StatusBadge status={g.status} /> },
+    ],
+    [currency],
+  );
 
   return (
     <>
       <Topbar title="Inventory" onOpenNav={openNav}>
-        <div className="relative hidden sm:block">
+        <div className="relative hidden md:block">
           <Icon
             name="search"
             className="pointer-events-none absolute left-3 top-1/2 -translate-y-1/2 text-[20px] text-on-surface-variant"
@@ -180,68 +180,86 @@ export function InventoryPage() {
               setSearchInput(e.target.value);
               setPage(1);
             }}
-            placeholder="Search brand, serial, category…"
+            placeholder="Search product, serial, category…"
             aria-label="Search inventory"
-            className="h-10 w-64 rounded-lg border border-outline-variant bg-surface-container-low pl-10 pr-md text-body-md focus-ring"
+            className="h-10 w-56 rounded-lg border border-outline-variant bg-surface-container-low pl-10 pr-md text-body-md focus-ring xl:w-72"
           />
         </div>
         <Button variant="secondary" size="sm" icon="auto_awesome" onClick={() => setAiOpen(true)}>
-          Ask AI
+          <span className="hidden sm:inline">Ask AI</span>
         </Button>
       </Topbar>
 
-      <main className="space-y-lg p-lg">
+      <main className="space-y-lg p-md md:p-lg">
         {/* Summary */}
-        <section aria-label="Inventory summary" className="grid grid-cols-2 gap-gutter md:grid-cols-4">
+        <section
+          aria-label="Inventory summary"
+          className="grid grid-cols-2 gap-md xl:grid-cols-4 xl:gap-gutter"
+        >
+          <StatCard label="Products" value={formatNumber(summary.products)} loading={isLoading} icon="inventory_2" />
           <StatCard
-            label="Total Items"
-            value={summary.data ? formatNumber(summary.data.totalItems) : "—"}
-            loading={summary.isLoading}
-            icon="inventory_2"
+            label="Total Units"
+            value={formatNumber(summary.totalUnits)}
+            loading={isLoading}
+            icon="numbers"
           />
           <StatCard
             label="Total Value"
-            value={summary.data ? formatPrice(summary.data.totalValue, summary.data.currency) : "—"}
-            loading={summary.isLoading}
+            value={formatPrice(summary.totalValue, currency)}
+            loading={isLoading}
             tone="primary"
           />
           <StatCard
-            label="Low Stock"
-            value={summary.data?.lowStock ?? "—"}
-            loading={summary.isLoading}
-            hint="Reorder soon"
-          />
-          <StatCard
-            label="Out of Stock"
-            value={summary.data?.outOfStock ?? "—"}
-            loading={summary.isLoading}
+            label="Low / Out of Stock"
+            value={`${summary.lowStock} / ${summary.outOfStock}`}
+            loading={isLoading}
             tone="error"
+            hint={`Low = ${lowStockThreshold} units or fewer`}
           />
         </section>
 
+        {/* Mobile search */}
+        <div className="relative md:hidden">
+          <Icon
+            name="search"
+            className="pointer-events-none absolute left-3 top-1/2 -translate-y-1/2 text-[20px] text-on-surface-variant"
+          />
+          <input
+            type="search"
+            value={searchInput}
+            onChange={(e) => {
+              setSearchInput(e.target.value);
+              setPage(1);
+            }}
+            placeholder="Search product, serial…"
+            aria-label="Search inventory"
+            className="h-11 w-full rounded-lg border border-outline-variant bg-surface-container-low pl-10 pr-md text-body-md focus-ring"
+          />
+        </div>
+
         {/* Filters + admin Add */}
-        <section className="flex flex-wrap items-end justify-between gap-md">
+        <section className="flex flex-col gap-md sm:flex-row sm:flex-wrap sm:items-end sm:justify-between">
           <div className="flex flex-wrap items-end gap-md">
             <SelectField
               label="Category"
               value={category}
-              wrapperClassName="w-48"
+              wrapperClassName="w-full min-w-0 flex-1 sm:w-44 sm:flex-none"
               onChange={(e) => {
                 setCategory(e.target.value);
                 setPage(1);
               }}
             >
               <option value="">All categories</option>
-              {categories?.map((c) => (
-                <option key={c.id} value={c.name}>
-                  {c.name}
+              {categories.map((c) => (
+                <option key={c} value={c}>
+                  {c}
                 </option>
               ))}
             </SelectField>
             <SelectField
               label="Status"
               value={status}
-              wrapperClassName="w-48"
+              wrapperClassName="w-full min-w-0 flex-1 sm:w-44 sm:flex-none"
               onChange={(e) => {
                 setStatus(e.target.value as StockStatus | "");
                 setPage(1);
@@ -253,39 +271,92 @@ export function InventoryPage() {
                 </option>
               ))}
             </SelectField>
+            {hasFilters && (
+              <Button variant="ghost" size="sm" onClick={resetFilters}>
+                Clear
+              </Button>
+            )}
           </div>
 
           <RoleGate role="admin">
-            <Button icon="add" onClick={openCreate}>
-              Add Item
+            <Button icon="add" onClick={() => setProductFormOpen(true)} className="w-full sm:w-auto">
+              Add Product
             </Button>
           </RoleGate>
         </section>
 
+        {/* Screen-reader announcement of result count */}
+        <p aria-live="polite" className="sr-only">
+          {isLoading ? "Loading inventory" : `${filtered.length} products found`}
+        </p>
+
         {/* Table */}
-        <section className={isPlaceholderData ? "opacity-60 transition-opacity" : undefined}>
+        <section>
           <Table
-            caption="Inventory items"
+            caption="Products in inventory"
             columns={columns}
-            rows={data?.data ?? []}
-            rowKey={(item) => item.id}
-            onRowClick={(item) => setDetailId(item.id)}
+            rows={pageRows}
+            rowKey={(g) => g.key}
+            onRowClick={(g) => setDetailKey(g.key)}
             isLoading={isLoading}
             error={isError ? "Couldn't load inventory." : null}
             onRetry={() => refetch()}
+            renderCard={(g) => (
+              <div className="flex items-start justify-between gap-md">
+                <div className="min-w-0">
+                  <div className="flex items-center gap-sm">
+                    <span className="truncate font-semibold text-on-surface">{g.name}</span>
+                    {g.hasLegacyRows && (
+                      <Icon name="warning" className="text-[16px] text-status-warning-fg" />
+                    )}
+                  </div>
+                  <div className="mt-xs flex flex-wrap items-center gap-sm">
+                    {g.category && <Badge>{g.category}</Badge>}
+                    <StatusBadge status={g.status} />
+                  </div>
+                  <div className="mt-xs text-body-sm text-on-surface-variant">
+                    {formatNumber(g.totalUnits)} units · {formatPrice(g.unitPrice, currency)} each
+                  </div>
+                </div>
+                <div className="flex-shrink-0 text-right">
+                  <div className="font-semibold text-on-surface">
+                    {formatPrice(g.totalValue, currency)}
+                  </div>
+                  <div className="text-body-sm text-on-surface-variant">total</div>
+                </div>
+              </div>
+            )}
             emptyState={
               <div className="flex flex-col items-center gap-sm text-on-surface-variant">
                 <Icon name="inventory_2" className="text-3xl text-outline-variant" />
-                <p>No items match your filters.</p>
+                {isEmptyCatalog ? (
+                  <>
+                    <p className="font-semibold text-on-surface">No products yet</p>
+                    <p>Add your first product to start tracking inventory.</p>
+                    <RoleGate role="admin">
+                      <Button icon="add" className="mt-sm" onClick={() => setProductFormOpen(true)}>
+                        Add Product
+                      </Button>
+                    </RoleGate>
+                  </>
+                ) : (
+                  <>
+                    <p className="font-semibold text-on-surface">No matching products</p>
+                    <p>No products match your search or filters.</p>
+                    <Button variant="secondary" size="sm" className="mt-sm" onClick={resetFilters}>
+                      Clear filters
+                    </Button>
+                  </>
+                )}
               </div>
             }
           />
-          {data && data.total > 0 && (
+          {filtered.length > pageSize && (
             <div className="rounded-b-lg border border-t-0 border-outline-variant bg-surface-container-lowest">
               <Pagination
-                page={data.page}
-                pageSize={data.pageSize}
-                total={data.total}
+                page={currentPage}
+                pageSize={pageSize}
+                total={filtered.length}
                 onPageChange={setPage}
               />
             </div>
@@ -294,14 +365,33 @@ export function InventoryPage() {
       </main>
 
       {/* Overlays */}
-      <ItemDetailPanel
-        itemId={detailId}
-        open={detailId !== null}
-        onClose={() => setDetailId(null)}
-        onEdit={openEdit}
-        onDelete={openDelete}
+      <ProductDetailPanel
+        group={detailGroup}
+        open={detailKey !== null}
+        onClose={() => setDetailKey(null)}
+        onEditUnit={(unit) => setEditUnit(unit)}
+        onDeleteUnit={(unit) => setDeleteTarget(unit)}
+        onAddUnits={(g) => {
+          setDetailKey(null);
+          setProductFormOpen(true);
+          setPrefill(g);
+        }}
       />
-      <ItemFormPanel open={formOpen} item={formItem} onClose={() => setFormOpen(false)} />
+      <ProductFormPanel
+        open={productFormOpen}
+        prefill={prefill}
+        knownCategories={categories}
+        onClose={() => {
+          setProductFormOpen(false);
+          setPrefill(null);
+        }}
+      />
+      <UnitFormPanel
+        open={editUnit !== null}
+        unit={editUnit}
+        knownCategories={categories}
+        onClose={() => setEditUnit(null)}
+      />
       <DeleteItemModal
         item={deleteTarget}
         open={deleteTarget !== null}
@@ -312,7 +402,8 @@ export function InventoryPage() {
         onClose={() => setAiOpen(false)}
         onSelectItem={(item) => {
           setAiOpen(false);
-          setDetailId(item.id);
+          const g = allGroups.find((grp) => grp.units.some((u) => u.id === item.id));
+          if (g) setDetailKey(g.key);
         }}
       />
     </>
