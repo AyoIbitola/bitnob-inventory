@@ -6,7 +6,15 @@ from app.auth.utils import create_access_token, hash_password, verify_password
 from app.config import settings
 from app.database import get_db
 from app.models import User
-from app.schemas import AdminUpdate, TokenOut, UserLogin, UserOut, UserRegister
+from app.schemas import (
+    AdminUpdate,
+    PasswordChange,
+    PasswordReset,
+    TokenOut,
+    UserLogin,
+    UserOut,
+    UserRegister,
+)
 
 router = APIRouter()
 
@@ -48,6 +56,23 @@ def me(current_user: User = Depends(get_current_user)):
     return current_user
 
 
+@router.patch("/auth/me/password", status_code=status.HTTP_204_NO_CONTENT)
+def change_password(
+    payload: PasswordChange,
+    db: Session = Depends(get_db),
+    current_user: User = Depends(get_current_user),
+):
+    if not verify_password(payload.current_password, current_user.password_hash):
+        raise HTTPException(
+            status_code=status.HTTP_401_UNAUTHORIZED,
+            detail="Current password is incorrect",
+        )
+
+    current_user.password_hash = hash_password(payload.new_password)
+    db.commit()
+    return None
+
+
 @router.get("/users", response_model=list[UserOut])
 def list_users(db: Session = Depends(get_db), _: User = Depends(require_admin)):
     return db.query(User).all()
@@ -68,3 +93,19 @@ def set_admin(
     db.commit()
     db.refresh(user)
     return user
+
+
+@router.patch("/users/{user_id}/password", status_code=status.HTTP_204_NO_CONTENT)
+def reset_user_password(
+    user_id: int,
+    payload: PasswordReset,
+    db: Session = Depends(get_db),
+    _: User = Depends(require_admin),
+):
+    user = db.query(User).filter(User.id == user_id).first()
+    if not user:
+        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="User not found")
+
+    user.password_hash = hash_password(payload.new_password)
+    db.commit()
+    return None

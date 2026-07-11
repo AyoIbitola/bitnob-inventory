@@ -33,6 +33,15 @@ class AdminUpdate(BaseModel):
     is_admin: bool
 
 
+class PasswordChange(BaseModel):
+    current_password: str
+    new_password: str
+
+
+class PasswordReset(BaseModel):
+    new_password: str
+
+
 # --- Products ---
 
 class ProductBase(BaseModel):
