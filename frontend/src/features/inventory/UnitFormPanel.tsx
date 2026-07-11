@@ -4,6 +4,7 @@ import { SidePanel } from "@/components/SidePanel";
 import { Button } from "@/components/Button";
 import { InputField, TextareaField } from "@/components/FormField";
 import { ApiError } from "@/api";
+import { useToast } from "@/components/Toast";
 import { useSettings } from "@/settings/SettingsContext";
 import type { Item } from "@/types";
 import { useUpdateItem } from "./hooks";
@@ -21,6 +22,7 @@ interface UnitFormPanelProps {
  */
 export function UnitFormPanel({ open, onClose, unit, knownCategories }: UnitFormPanelProps) {
   const { settings } = useSettings();
+  const { toast } = useToast();
   const updateItem = useUpdateItem();
 
   const [serialNumber, setSerialNumber] = useState("");
@@ -28,7 +30,6 @@ export function UnitFormPanel({ open, onClose, unit, knownCategories }: UnitForm
   const [modelNo, setModelNo] = useState("");
   const [category, setCategory] = useState("");
   const [price, setPrice] = useState("");
-  const [quantity, setQuantity] = useState("1");
   const [description, setDescription] = useState("");
   const [error, setError] = useState<string | null>(null);
 
@@ -39,7 +40,6 @@ export function UnitFormPanel({ open, onClose, unit, knownCategories }: UnitForm
     setModelNo(unit.modelNo ?? "");
     setCategory(unit.category ?? "");
     setPrice(unit.price != null ? String(unit.price) : "");
-    setQuantity(String(unit.quantity ?? 1));
     setDescription(unit.description ?? "");
     setError(null);
   }, [open, unit]);
@@ -51,9 +51,6 @@ export function UnitFormPanel({ open, onClose, unit, knownCategories }: UnitForm
 
     if (!serialNumber.trim()) return setError("Serial number is required.");
     if (!brand.trim()) return setError("Brand is required.");
-
-    const qty = Number(quantity);
-    if (!Number.isInteger(qty) || qty < 0) return setError("Quantity must be a whole number ≥ 0.");
 
     const priceValue = price.trim() === "" ? undefined : Number(price);
     if (priceValue !== undefined && (!Number.isFinite(priceValue) || priceValue < 0))
@@ -68,10 +65,10 @@ export function UnitFormPanel({ open, onClose, unit, knownCategories }: UnitForm
           modelNo: modelNo.trim() || undefined,
           category: category.trim() || undefined,
           description: description.trim() || undefined,
-          quantity: qty,
           price: priceValue,
         },
       });
+      toast(`Unit ${serialNumber.trim()} updated.`);
       onClose();
     } catch (err) {
       setError(err instanceof ApiError ? err.message : "Couldn't save. Please try again.");
@@ -79,7 +76,6 @@ export function UnitFormPanel({ open, onClose, unit, knownCategories }: UnitForm
   }
 
   const formId = "unit-form";
-  const isLegacy = (unit?.quantity ?? 1) > 1;
 
   return (
     <SidePanel
@@ -104,13 +100,6 @@ export function UnitFormPanel({ open, onClose, unit, knownCategories }: UnitForm
             className="rounded-lg border border-error-container bg-error-container/50 px-md py-sm text-body-sm text-on-error-container"
           >
             {error}
-          </div>
-        )}
-
-        {isLegacy && (
-          <div className="rounded-lg border border-status-warning-fg/30 bg-status-warning-bg px-md py-sm text-body-sm text-status-warning-fg">
-            This record uses one serial number for <strong>{unit?.quantity} units</strong>. Set the
-            quantity to 1 and add the remaining units individually so each has its own product ID.
           </div>
         )}
 
@@ -147,21 +136,12 @@ export function UnitFormPanel({ open, onClose, unit, knownCategories }: UnitForm
           ))}
         </datalist>
 
-        <div className="grid grid-cols-2 gap-md">
-          <InputField
-            label={`Unit Price (${settings.currency})`}
-            inputMode="decimal"
-            value={price}
-            onChange={(e) => setPrice(e.target.value)}
-          />
-          <InputField
-            label="Quantity"
-            type="number"
-            min={0}
-            value={quantity}
-            onChange={(e) => setQuantity(e.target.value)}
-          />
-        </div>
+        <InputField
+          label={`Unit Price (${settings.currency})`}
+          inputMode="decimal"
+          value={price}
+          onChange={(e) => setPrice(e.target.value)}
+        />
 
         <TextareaField
           label="Description"

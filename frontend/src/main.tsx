@@ -3,6 +3,7 @@ import { createRoot } from "react-dom/client";
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import App from "./App";
 import { ErrorBoundary } from "./components/ErrorBoundary";
+import { ToastProvider } from "./components/Toast";
 import { SettingsProvider } from "./settings/SettingsContext";
 import "./index.css";
 
@@ -21,7 +22,9 @@ createRoot(document.getElementById("root")!).render(
     <ErrorBoundary>
       <QueryClientProvider client={queryClient}>
         <SettingsProvider>
-          <App />
+          <ToastProvider>
+            <App />
+          </ToastProvider>
         </SettingsProvider>
       </QueryClientProvider>
     </ErrorBoundary>

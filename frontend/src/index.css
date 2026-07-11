@@ -11,6 +11,14 @@
     @apply bg-background text-on-background antialiased;
   }
 
+  /* Global keyboard focus indicator (WCAG 2.4.7). Only for keyboard users —
+     :focus-visible, so mouse clicks don't paint rings everywhere. */
+  :focus-visible {
+    outline: 2px solid #4f46e5;
+    outline-offset: 2px;
+    border-radius: 2px;
+  }
+
   /* Material Symbols default weight/fill to match the design system's
      "outline, sparingly used" icon guidance. */
   .material-symbols-outlined {

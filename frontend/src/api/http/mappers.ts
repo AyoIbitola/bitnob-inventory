@@ -3,6 +3,7 @@ import { initialsFrom } from "@/lib/format";
 
 /** ---- Backend wire types (mirror of the OpenAPI schemas) ---- */
 
+/** Mirrors the backend schema. NOTE: `quantity` was dropped — one row = one unit. */
 export interface ProductOut {
   id: number;
   serial_number: string;
@@ -10,7 +11,6 @@ export interface ProductOut {
   model_no: string | null;
   category: string | null;
   description: string | null;
-  quantity: number;
   price: number | null;
   created_at: string;
   updated_at: string;
@@ -22,7 +22,6 @@ export interface ProductWrite {
   model_no?: string | null;
   category?: string | null;
   description?: string | null;
-  quantity: number;
   price?: number | null;
 }
 
@@ -44,7 +43,6 @@ export function toItem(p: ProductOut): Item {
     modelNo: p.model_no ?? undefined,
     category: p.category ?? undefined,
     description: p.description ?? undefined,
-    quantity: p.quantity,
     price: p.price ?? undefined,
     createdAt: p.created_at,
     updatedAt: p.updated_at,
@@ -59,7 +57,6 @@ export function toProductWrite(input: Partial<ItemInput>): Partial<ProductWrite>
   if (input.modelNo !== undefined) out.model_no = input.modelNo || null;
   if (input.category !== undefined) out.category = input.category || null;
   if (input.description !== undefined) out.description = input.description || null;
-  if (input.quantity !== undefined) out.quantity = input.quantity;
   if (input.price !== undefined) out.price = input.price ?? null;
   return out;
 }

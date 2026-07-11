@@ -76,17 +76,6 @@ export function ProductDetailPanel({
             </div>
           </div>
 
-          {/* Legacy data warning — surface bad data instead of hiding it. */}
-          {group.hasLegacyRows && (
-            <div className="mb-lg flex items-start gap-sm rounded-lg border border-status-warning-fg/30 bg-status-warning-bg/60 px-md py-sm text-body-sm text-status-warning-fg">
-              <Icon name="warning" className="mt-0.5 text-[18px]" />
-              <span>
-                One or more records below use a single serial number for multiple units. Each
-                physical unit needs its own serial — split these into individual records.
-              </span>
-            </div>
-          )}
-
           {/* Rollup */}
           <dl className="mb-xl grid grid-cols-2 gap-sm">
             <Stat label="Total Units" value={formatNumber(group.totalUnits)} />
@@ -112,11 +101,6 @@ export function ProductDetailPanel({
                   </code>
                   <span className="text-body-sm text-on-surface-variant">
                     {formatPrice(unit.price, currency)}
-                    {unit.quantity > 1 && (
-                      <span className="ml-xs font-semibold text-status-warning-fg">
-                        · {unit.quantity} units on one serial
-                      </span>
-                    )}
                   </span>
                 </div>
                 <RoleGate role="admin">

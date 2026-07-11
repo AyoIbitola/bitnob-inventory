@@ -4,6 +4,7 @@ import { Link, useLocation, useNavigate } from "react-router-dom";
 import { useAuth } from "@/auth/AuthContext";
 import { ApiError } from "@/api";
 import { Button, InputField } from "@/components";
+import { PasswordField } from "@/components/PasswordField";
 import { USE_MOCK_API } from "@/config";
 import { AuthShell } from "./AuthShell";
 
@@ -20,7 +21,6 @@ export function LoginPage() {
 
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
-  const [showPassword, setShowPassword] = useState(false);
   const [showResetHint, setShowResetHint] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [submitting, setSubmitting] = useState(false);
@@ -80,23 +80,14 @@ export function LoginPage() {
         />
 
         <div className="space-y-xs">
-          <InputField
+          <PasswordField
             label="Password"
-            type={showPassword ? "text" : "password"}
             autoComplete="current-password"
             required
             value={password}
             onChange={(e) => setPassword(e.target.value)}
-            className="pr-16"
           />
-          <div className="flex justify-between">
-            <button
-              type="button"
-              className="text-body-sm text-on-surface-variant hover:text-on-surface"
-              onClick={() => setShowPassword((v) => !v)}
-            >
-              {showPassword ? "Hide password" : "Show password"}
-            </button>
+          <div className="flex justify-end">
             <button
               type="button"
               className="text-body-sm text-primary hover:underline"

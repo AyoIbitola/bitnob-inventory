@@ -1,4 +1,5 @@
 import { useMemo, useState } from "react";
+import { useSearchParams } from "react-router-dom";
 import { Topbar } from "@/components/layout/Topbar";
 import { useLayout } from "@/components/layout/AppLayout";
 import { Table, type Column } from "@/components/Table";
@@ -42,7 +43,22 @@ export function InventoryPage() {
 
   const [searchInput, setSearchInput] = useState("");
   const search = useDebouncedValue(searchInput, 250);
-  const [category, setCategory] = useState("");
+
+  // Category lives in the URL so Categories → "view products" deep-links here,
+  // and the filtered view is shareable/bookmarkable.
+  const [searchParams, setSearchParams] = useSearchParams();
+  const category = searchParams.get("category") ?? "";
+  const setCategory = (value: string) => {
+    setSearchParams(
+      (params) => {
+        if (value) params.set("category", value);
+        else params.delete("category");
+        return params;
+      },
+      { replace: true },
+    );
+  };
+
   const [status, setStatus] = useState<StockStatus | "">("");
   const [page, setPage] = useState(1);
 
@@ -124,17 +140,10 @@ export function InventoryPage() {
         header: "Product",
         render: (g) => (
           <div className="min-w-0">
-            <div className="flex items-center gap-sm">
-              <span className="truncate font-semibold text-on-surface">{g.name}</span>
-              {g.hasLegacyRows && (
-                <span title="One serial number covers multiple units — needs splitting">
-                  <Icon name="warning" className="text-[18px] text-status-warning-fg" />
-                </span>
-              )}
-            </div>
-            <div className="text-body-sm text-on-surface-variant">
-              {g.units.length} record{g.units.length === 1 ? "" : "s"}
-            </div>
+            <span className="block truncate font-semibold text-on-surface">{g.name}</span>
+            <span className="text-body-sm text-on-surface-variant">
+              {g.units.length === 1 ? "1 unit tracked" : `${g.units.length} units tracked`}
+            </span>
           </div>
         ),
       },
@@ -168,6 +177,8 @@ export function InventoryPage() {
   return (
     <>
       <Topbar title="Inventory" onOpenNav={openNav}>
+        {/* Wide enough that the placeholder never truncates — a cut-off
+            placeholder hides what's actually searchable. */}
         <div className="relative hidden md:block">
           <Icon
             name="search"
@@ -180,12 +191,21 @@ export function InventoryPage() {
               setSearchInput(e.target.value);
               setPage(1);
             }}
-            placeholder="Search product, serial, category…"
-            aria-label="Search inventory"
-            className="h-10 w-56 rounded-lg border border-outline-variant bg-surface-container-low pl-10 pr-md text-body-md focus-ring xl:w-72"
+            placeholder="Search by brand, serial, or category"
+            aria-label="Search inventory by brand, serial number, or category"
+            className="h-10 w-72 rounded-lg border border-outline-variant bg-surface-container-low pl-10 pr-md text-body-md focus-ring lg:w-[380px]"
           />
         </div>
-        <Button variant="secondary" size="sm" icon="auto_awesome" onClick={() => setAiOpen(true)}>
+        {/* Separated from search so it doesn't read as part of the field, and
+            titled so first-timers know what "Ask AI" actually does. */}
+        <Button
+          variant="secondary"
+          size="sm"
+          icon="auto_awesome"
+          className="ml-sm"
+          title="Ask AI: query your inventory in plain English, e.g. “what's low on stock?”"
+          onClick={() => setAiOpen(true)}
+        >
           <span className="hidden sm:inline">Ask AI</span>
         </Button>
       </Topbar>
@@ -194,9 +214,14 @@ export function InventoryPage() {
         {/* Summary */}
         <section
           aria-label="Inventory summary"
-          className="grid grid-cols-2 gap-md xl:grid-cols-4 xl:gap-gutter"
+          className="grid grid-cols-2 gap-md xl:grid-cols-5 xl:gap-gutter"
         >
-          <StatCard label="Products" value={formatNumber(summary.products)} loading={isLoading} icon="inventory_2" />
+          <StatCard
+            label="Products"
+            value={formatNumber(summary.products)}
+            loading={isLoading}
+            icon="inventory_2"
+          />
           <StatCard
             label="Total Units"
             value={formatNumber(summary.totalUnits)}
@@ -208,13 +233,24 @@ export function InventoryPage() {
             value={formatPrice(summary.totalValue, currency)}
             loading={isLoading}
             tone="primary"
+            icon="payments"
+          />
+          {/* Only alarm-colour these when they're actually a problem. */}
+          <StatCard
+            label="Low Stock"
+            value={formatNumber(summary.lowStock)}
+            loading={isLoading}
+            tone={summary.lowStock > 0 ? "warning" : "default"}
+            icon="trending_down"
+            hint={`${lowStockThreshold} units or fewer`}
           />
           <StatCard
-            label="Low / Out of Stock"
-            value={`${summary.lowStock} / ${summary.outOfStock}`}
+            label="Out of Stock"
+            value={formatNumber(summary.outOfStock)}
             loading={isLoading}
-            tone="error"
-            hint={`Low = ${lowStockThreshold} units or fewer`}
+            tone={summary.outOfStock > 0 ? "error" : "default"}
+            icon="production_quantity_limits"
+            hint={summary.outOfStock === 0 ? "All products in stock" : "Needs restocking"}
           />
         </section>
 
@@ -304,12 +340,7 @@ export function InventoryPage() {
             renderCard={(g) => (
               <div className="flex items-start justify-between gap-md">
                 <div className="min-w-0">
-                  <div className="flex items-center gap-sm">
-                    <span className="truncate font-semibold text-on-surface">{g.name}</span>
-                    {g.hasLegacyRows && (
-                      <Icon name="warning" className="text-[16px] text-status-warning-fg" />
-                    )}
-                  </div>
+                  <span className="block truncate font-semibold text-on-surface">{g.name}</span>
                   <div className="mt-xs flex flex-wrap items-center gap-sm">
                     {g.category && <Badge>{g.category}</Badge>}
                     <StatusBadge status={g.status} />

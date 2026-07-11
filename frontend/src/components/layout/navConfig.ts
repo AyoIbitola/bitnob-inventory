@@ -16,6 +16,7 @@ export interface NavItem {
 export const NAV_ITEMS: NavItem[] = [
   { label: "Inventory", icon: "dashboard", to: "/", section: "main" },
   { label: "Categories", icon: "category", to: "/categories", section: "main" },
+  { label: "Reports", icon: "analytics", to: "/reports", section: "main" },
   { label: "Settings", icon: "settings", to: "/settings", section: "main" },
 
   { label: "Manage Inventory", icon: "inventory_2", to: "/inventory", section: "admin", role: "admin" },

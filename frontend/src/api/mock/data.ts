@@ -44,7 +44,6 @@ function units(
     modelNo,
     category,
     description,
-    quantity: 1,
     price,
     createdAt: new Date(Date.now() - 1000 * 60 * 60 * 24 * 40).toISOString(),
     updatedAt: new Date(Date.now() - Math.random() * 1000 * 60 * 60 * 24 * 20).toISOString(),

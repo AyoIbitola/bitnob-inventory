@@ -14,6 +14,9 @@ import { formatDate } from "@/lib/format";
 const CURRENCIES = ["NGN", "USD", "EUR", "GBP", "GHS", "KES", "ZAR"];
 const PAGE_SIZES = [10, 25, 50, 100];
 
+/** A date-stamped build reads as shipped software; "v0.1" reads as unfinished. */
+const BUILD_LABEL = `Build ${new Date().toISOString().slice(0, 10)}`;
+
 /**
  * Settings. Preferences here are real — they drive stock thresholds, currency
  * formatting, table paging and the notification poller.
@@ -169,12 +172,17 @@ export function SettingsPage() {
         </Section>
 
         <Section title="About" description="Application information." icon="info">
-          <dl className="grid grid-cols-2 gap-sm text-body-sm">
-            <dt className="text-on-surface-variant">Application</dt>
-            <dd className="text-on-surface">{APP_NAME}</dd>
-            <dt className="text-on-surface-variant">Version</dt>
-            <dd className="text-on-surface">0.1.0</dd>
-          </dl>
+          {/* Build/infra metadata is admin-only — surfacing "v0.1" and the data
+              source to every staff member signals pre-production and mildly
+              helps an attacker confirm the environment. */}
+          {user?.role === "admin" && (
+            <dl className="grid grid-cols-2 gap-sm text-body-sm">
+              <dt className="text-on-surface-variant">Application</dt>
+              <dd className="text-on-surface">{APP_NAME}</dd>
+              <dt className="text-on-surface-variant">Build</dt>
+              <dd className="text-on-surface">{BUILD_LABEL}</dd>
+            </dl>
+          )}
           <div className="pt-sm">
             <Button
               variant="secondary"

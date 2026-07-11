@@ -21,9 +21,9 @@ function groupKey(item: Item): string {
 /**
  * Fold individual unit records into products.
  *
- * Each backend row is one unit (unique serial). A product is every unit sharing
- * brand + model + category. Total units sums quantities so legacy rows (one
- * serial claiming N units) still report honestly — and get flagged.
+ * The backend has no `quantity` — one row IS one physical unit (unique serial).
+ * So a product's stock level is simply how many unit rows it has, and its total
+ * value is the sum of those units' prices.
  */
 export function groupItems(items: Item[], lowStockThreshold: number): ProductGroup[] {
   const map = new Map<string, Item[]>();
@@ -39,14 +39,12 @@ export function groupItems(items: Item[], lowStockThreshold: number): ProductGro
 
   for (const [key, units] of map) {
     const first = units[0];
-    const totalUnits = units.reduce((sum, u) => sum + (u.quantity ?? 0), 0);
+    const totalUnits = units.length;
 
-    // Unit price: use the first priced unit. Units of the same product should
-    // agree; if they don't, the detail panel shows each unit's own price.
-    const priced = units.find((u) => u.price != null);
-    const unitPrice = priced?.price;
-
-    const totalValue = units.reduce((sum, u) => sum + (u.price ?? 0) * (u.quantity ?? 0), 0);
+    // Unit price: the first priced unit. Units of one product should agree; if
+    // they don't, the detail panel shows each unit's own price.
+    const unitPrice = units.find((u) => u.price != null)?.price;
+    const totalValue = units.reduce((sum, u) => sum + (u.price ?? 0), 0);
 
     groups.push({
       key,
@@ -59,7 +57,6 @@ export function groupItems(items: Item[], lowStockThreshold: number): ProductGro
       unitPrice,
       totalValue,
       status: statusForUnits(totalUnits, lowStockThreshold),
-      hasLegacyRows: units.some((u) => (u.quantity ?? 0) > 1),
       updatedAt: units.reduce((latest, u) => (u.updatedAt > latest ? u.updatedAt : latest), ""),
     });
   }

@@ -4,6 +4,7 @@ import { SidePanel } from "@/components/SidePanel";
 import { Button } from "@/components/Button";
 import { Icon } from "@/components/Icon";
 import { InputField, TextareaField } from "@/components/FormField";
+import { useToast } from "@/components/Toast";
 import { useSettings } from "@/settings/SettingsContext";
 import { fileToDownscaledDataUrl, imageStore } from "@/lib/imageStore";
 import type { ItemInput, ProductGroup } from "@/types";
@@ -27,6 +28,7 @@ interface ProductFormPanelProps {
  */
 export function ProductFormPanel({ open, onClose, prefill, knownCategories }: ProductFormPanelProps) {
   const { settings } = useSettings();
+  const { toast } = useToast();
   const createUnits = useCreateUnits();
 
   const [brand, setBrand] = useState("");
@@ -116,7 +118,6 @@ export function ProductFormPanel({ open, onClose, prefill, knownCategories }: Pr
       modelNo: modelNo.trim() || undefined,
       category: category.trim() || undefined,
       description: description.trim() || undefined,
-      quantity: 1, // one row = one physical unit
       price: priceValue,
     }));
 
@@ -129,8 +130,15 @@ export function ProductFormPanel({ open, onClose, prefill, knownCategories }: Pr
       // Keep only the failed serials so the admin can correct them.
       setSerials(failed.map((f) => f.serialNumber));
       if (created.length === 0) setError("None of the units could be saved.");
+      else toast(`Saved ${created.length} of ${inputs.length} units.`, "error");
       return;
     }
+
+    toast(
+      created.length === 1
+        ? `Added 1 unit of ${brand.trim()}.`
+        : `Added ${created.length} units of ${brand.trim()}.`,
+    );
     onClose();
   }
 

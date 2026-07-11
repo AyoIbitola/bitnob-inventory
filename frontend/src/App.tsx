@@ -7,6 +7,7 @@ import { LoginPage } from "@/features/auth/LoginPage";
 import { RegisterPage } from "@/features/auth/RegisterPage";
 import { InventoryPage } from "@/features/inventory/InventoryPage";
 import { CategoriesPage } from "@/features/categories/CategoriesPage";
+import { ReportsPage } from "@/features/reports/ReportsPage";
 import { SettingsPage } from "@/features/settings/SettingsPage";
 import { UsersPage } from "@/features/users/UsersPage";
 
@@ -46,6 +47,7 @@ export default function App() {
                 {/* Everyone: browse inventory, categories, own settings. */}
                 <Route index element={<InventoryPage />} />
                 <Route path="categories" element={<CategoriesPage />} />
+                <Route path="reports" element={<ReportsPage />} />
                 <Route path="settings" element={<SettingsPage />} />
 
                 {/* Admin-only routes — hard-gated, inaccessible to staff. */}

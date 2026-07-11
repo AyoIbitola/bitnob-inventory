@@ -29,9 +29,9 @@ export type StockStatus = "in_stock" | "low_stock" | "out_of_stock";
 /**
  * A single physical UNIT of stock.
  *
- * The backend enforces `serial_number` UNIQUE — so one row = one physical unit,
- * and the serial IS that unit's product ID. `quantity` should therefore be 1;
- * rows with quantity > 1 are legacy bad data and are flagged in the UI.
+ * The backend enforces `serial_number` UNIQUE and has DROPPED `quantity`
+ * entirely — so one row is exactly one physical unit, and its serial IS that
+ * unit's product ID. Stock level = how many unit rows a product has.
  */
 export interface Item {
   /** Frontend keeps ids as strings; backend uses integers (mapped at boundary). */
@@ -43,8 +43,6 @@ export interface Item {
   modelNo?: string;
   category?: string;
   description?: string;
-  /** Physical units this row represents. Should be 1 (see legacy note above). */
-  quantity: number;
   /** Backend `price` — the UNIT price (nullable bare number, no currency). */
   price?: number;
   createdAt?: string;
@@ -67,27 +65,24 @@ export interface ProductGroup {
   category?: string;
   /** The individual unit records making up this product. */
   units: Item[];
-  /** Total physical units (sum of unit quantities). */
+  /** Stock level = how many units exist (one row per unit). */
   totalUnits: number;
   /** Unit price (from the units; undefined if none priced). */
   unitPrice?: number;
-  /** unitPrice × units — the overall value held in this product. */
+  /** Sum of every unit's price — the overall value held in this product. */
   totalValue: number;
   status: StockStatus;
-  /** True if any unit row has quantity > 1 (one serial covering many units). */
-  hasLegacyRows: boolean;
   /** Most recently updated unit. */
   updatedAt: string;
 }
 
-/** Create/update payload. Maps to ProductCreate / ProductUpdate. */
+/** Create/update payload for ONE unit. Maps to ProductCreate / ProductUpdate. */
 export interface ItemInput {
   serialNumber: string;
   brand: string;
   modelNo?: string;
   category?: string;
   description?: string;
-  quantity: number;
   price?: number;
 }
 

@@ -2,6 +2,7 @@ import { useState } from "react";
 import { Modal } from "@/components/Modal";
 import { Button } from "@/components/Button";
 import { ApiError } from "@/api";
+import { useToast } from "@/components/Toast";
 import { itemDisplayName } from "@/lib/format";
 import { imageStore } from "@/lib/imageStore";
 import type { Item } from "@/types";
@@ -20,6 +21,7 @@ interface DeleteItemModalProps {
  */
 export function DeleteItemModal({ item, open, onClose, onDeleted }: DeleteItemModalProps) {
   const deleteItem = useDeleteItem();
+  const { toast } = useToast();
   const [error, setError] = useState<string | null>(null);
 
   async function handleDelete() {
@@ -28,6 +30,7 @@ export function DeleteItemModal({ item, open, onClose, onDeleted }: DeleteItemMo
     try {
       await deleteItem.mutateAsync(item.id);
       imageStore.remove(item.id);
+      toast(`Unit ${item.serialNumber} deleted.`);
       onDeleted?.(item);
       onClose();
     } catch (err) {

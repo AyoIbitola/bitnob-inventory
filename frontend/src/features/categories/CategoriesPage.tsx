@@ -1,4 +1,6 @@
 import { useMemo, useState } from "react";
+import { useNavigate } from "react-router-dom";
+import { cn } from "@/lib/cn";
 import { Topbar } from "@/components/layout/Topbar";
 import { useLayout } from "@/components/layout/AppLayout";
 import { Table, type Column } from "@/components/Table";
@@ -12,6 +14,7 @@ import { useAuth } from "@/auth/AuthContext";
 import { useSettings } from "@/settings/SettingsContext";
 import { formatNumber, formatPrice } from "@/lib/format";
 import { useItems, useRenameCategory } from "@/features/inventory/hooks";
+import { groupItems } from "@/features/inventory/grouping";
 import { pendingCategories } from "./localCategories";
 
 interface CategoryRow {
@@ -19,8 +22,32 @@ interface CategoryRow {
   products: number;
   units: number;
   value: number;
+  /** Products in this category that are low or out of stock. */
+  atRisk: number;
   /** No product uses it yet — exists only locally. */
   pending: boolean;
+}
+
+/** Category-level stock health — the one thing a rollup view can show that the
+ *  inventory table can't. Without it this page just repeats data. */
+function HealthIndicator({ row }: { row: CategoryRow }) {
+  if (row.pending || row.products === 0) {
+    return <span className="text-body-sm text-on-surface-variant">—</span>;
+  }
+  const healthy = row.atRisk === 0;
+  return (
+    <span className="flex items-center gap-sm">
+      <span
+        className={cn(
+          "h-2 w-2 flex-shrink-0 rounded-full",
+          healthy ? "bg-status-success-fg" : "bg-status-warning-fg",
+        )}
+      />
+      <span className="text-body-sm text-on-surface-variant">
+        {healthy ? "Healthy" : `${row.atRisk} need restocking`}
+      </span>
+    </span>
+  );
 }
 
 /**
@@ -35,6 +62,7 @@ export function CategoriesPage() {
   const { openNav } = useLayout();
   const { hasRole } = useAuth();
   const { settings } = useSettings();
+  const navigate = useNavigate();
   const isAdmin = hasRole("admin");
 
   const { data: items, isLoading, isError, refetch } = useItems();
@@ -55,29 +83,32 @@ export function CategoriesPage() {
     for (const item of items ?? []) {
       const name = item.category?.trim();
       if (!name) continue;
-      const row = map.get(name) ?? { name, products: 0, units: 0, value: 0, pending: false };
-      row.units += item.quantity ?? 0;
-      row.value += (item.price ?? 0) * (item.quantity ?? 0);
+      const row =
+        map.get(name) ?? { name, products: 0, units: 0, value: 0, atRisk: 0, pending: false };
+      // One row = one unit, so each item contributes exactly one unit.
+      row.units += 1;
+      row.value += item.price ?? 0;
       map.set(name, row);
     }
 
-    // Distinct products (brand + model) per category.
+    // Product counts + stock health, using the SAME grouping/threshold logic as
+    // the inventory table so the two pages can never disagree.
+    const groups = groupItems(items ?? [], settings.lowStockThreshold);
     for (const [name, row] of map) {
-      row.products = new Set(
-        (items ?? [])
-          .filter((i) => i.category?.trim() === name)
-          .map((i) => `${i.brand}|${i.modelNo ?? ""}`.toLowerCase()),
-      ).size;
+      const inCategory = groups.filter((g) => g.category?.trim() === name);
+      row.products = inCategory.length;
+      row.atRisk = inCategory.filter((g) => g.status !== "in_stock").length;
     }
 
     // Locally-staged categories no product uses yet.
     void pendingVersion;
     for (const name of pendingCategories.list()) {
-      if (!map.has(name)) map.set(name, { name, products: 0, units: 0, value: 0, pending: true });
+      if (!map.has(name))
+        map.set(name, { name, products: 0, units: 0, value: 0, atRisk: 0, pending: true });
     }
 
     return [...map.values()].sort((a, b) => a.name.localeCompare(b.name));
-  }, [items, pendingVersion]);
+  }, [items, pendingVersion, settings.lowStockThreshold]);
 
   const existingNames = useMemo(() => rows.map((r) => r.name.toLowerCase()), [rows]);
 
@@ -142,10 +173,16 @@ export function CategoriesPage() {
     { key: "products", header: "Products", align: "right", render: (r) => formatNumber(r.products) },
     { key: "units", header: "Units", align: "right", render: (r) => formatNumber(r.units) },
     {
+      key: "health",
+      header: "Stock Health",
+      hideBelow: "md",
+      render: (r) => <HealthIndicator row={r} />,
+    },
+    {
       key: "value",
       header: "Total Value",
       align: "right",
-      hideBelow: "md",
+      hideBelow: "lg",
       render: (r) => formatPrice(r.value, settings.currency),
     },
     ...(isAdmin
@@ -155,7 +192,8 @@ export function CategoriesPage() {
             header: "Actions",
             align: "right" as const,
             render: (r: CategoryRow) => (
-              <div className="flex justify-end gap-sm">
+              // Stop clicks here from also triggering the row's drill-through.
+              <div className="flex justify-end gap-sm" onClick={(e) => e.stopPropagation()}>
                 <button
                   type="button"
                   aria-label={`Rename ${r.name}`}
@@ -210,6 +248,10 @@ export function CategoriesPage() {
           isLoading={isLoading}
           error={isError ? "Couldn't load categories." : null}
           onRetry={() => refetch()}
+          // Drill through to the inventory, pre-filtered to this category.
+          onRowClick={(r) =>
+            r.pending ? undefined : navigate(`/?category=${encodeURIComponent(r.name)}`)
+          }
           renderCard={(r) => (
             <div className="flex items-center justify-between gap-md">
               <div className="min-w-0">
