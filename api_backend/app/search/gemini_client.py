@@ -32,6 +32,14 @@ _STOPWORDS = {
 }
 
 
+# Pinned deliberately. "gemini-flash-latest" is an ALIAS that currently resolves
+# to gemini-3.5-flash, a preview model whose free tier allows only 20 requests a
+# DAY. Each search makes two calls (extract filters + compose answer), so search
+# silently died into keyword fallback after ~10 queries. gemini-2.0-flash is
+# stable and has a far larger free quota.
+MODEL_NAME = "gemini-2.0-flash"
+
+
 def _ensure_configured() -> None:
     global _configured
     if not _configured:
@@ -70,7 +78,7 @@ def _get_known_categories(db: Session) -> list[str]:
 
 def _extract_filters(query: str, categories: list[str]) -> dict:
     _ensure_configured()
-    model = genai.GenerativeModel("gemini-flash-latest")
+    model = genai.GenerativeModel(MODEL_NAME)
     categories_text = ", ".join(categories) if categories else "(none yet)"
     response = model.generate_content(
         EXTRACT_FILTERS_PROMPT.format(query=query, categories=categories_text),
@@ -127,7 +135,7 @@ def _query_products(db: Session, filters: dict) -> list[Product]:
 
 def _compose_answer(query: str, products: list[Product]) -> str:
     _ensure_configured()
-    model = genai.GenerativeModel("gemini-flash-latest")
+    model = genai.GenerativeModel(MODEL_NAME)
 
     rows = [
         {

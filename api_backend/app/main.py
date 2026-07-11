@@ -66,7 +66,9 @@ def gemini_probe(_: User = Depends(require_admin)):
     from app.search import gemini_client
 
     try:
-        model = genai.GenerativeModel("gemini-flash-latest")
+        from app.search.gemini_client import MODEL_NAME
+
+        model = genai.GenerativeModel(MODEL_NAME)
         reply = model.generate_content("Reply with the single word: OK")
         return {
             "ok": True,
