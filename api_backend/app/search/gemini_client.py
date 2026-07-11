@@ -1,4 +1,6 @@
 import json
+import logging
+import re
 
 import google.generativeai as genai
 from sqlalchemy import or_
@@ -7,7 +9,16 @@ from sqlalchemy.orm import Session
 from app.config import settings
 from app.models import Product
 
+logger = logging.getLogger(__name__)
+
 _configured = False
+
+# Carry no signal when falling back to keyword matching.
+_STOPWORDS = {
+    "a", "all", "an", "and", "any", "are", "do", "does", "find", "for", "get", "have",
+    "how", "in", "is", "it", "list", "many", "me", "much", "of", "on", "or", "our",
+    "show", "stock", "the", "there", "we", "what", "which", "with",
+}
 
 
 def _ensure_configured() -> None:
@@ -124,11 +135,55 @@ def _compose_answer(query: str, products: list[Product]) -> str:
     return response.text.strip()
 
 
+def _keyword_filters(query: str, categories: list[str]) -> dict:
+    """Filters derived without the LLM — used when Gemini is unavailable."""
+    words = [w for w in re.split(r"[^\w-]+", query.lower()) if w and w not in _STOPWORDS]
+    category = next((c for c in categories if c.lower() in query.lower()), None)
+    return {"keywords": words, "category": category}
+
+
+def _plain_answer(query: str, products: list[Product]) -> str:
+    """Deterministic answer used when Gemini is unavailable."""
+    if not products:
+        return f'No inventory units matched "{query}".'
+    if len(products) == 1:
+        p = products[0]
+        return f'1 unit matched "{query}": {p.brand} {p.model_no or ""}'.strip()
+    return f'{len(products)} units matched "{query}".'
+
+
 def run_inventory_search(query: str, db: Session) -> dict:
+    """AI-assisted search that degrades gracefully.
+
+    Previously ANY Gemini failure (missing/invalid key, quota, network, model
+    rename, deprecated SDK) propagated and the endpoint returned 500 — search
+    was simply dead. The LLM is now best-effort: on failure we fall back to
+    keyword matching so the user still gets results.
+    """
     categories = _get_known_categories(db)
-    filters = _extract_filters(query, categories)
+    ai_available = bool(settings.gemini_api_key)
+
+    filters = None
+    if ai_available:
+        try:
+            filters = _extract_filters(query, categories)
+        except Exception:  # noqa: BLE001 - any Gemini/network failure
+            logger.exception("Gemini filter extraction failed; falling back to keyword search")
+
+    if filters is None:
+        filters = _keyword_filters(query, categories)
+
     products = _query_products(db, filters)
-    answer = _compose_answer(query, products)
+
+    answer = None
+    if ai_available:
+        try:
+            answer = _compose_answer(query, products)
+        except Exception:  # noqa: BLE001
+            logger.exception("Gemini answer composition failed; falling back to plain answer")
+
+    if answer is None:
+        answer = _plain_answer(query, products)
 
     return {
         "answer": answer,
