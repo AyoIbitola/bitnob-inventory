@@ -66,14 +66,12 @@ def gemini_probe(_: User = Depends(require_admin)):
     from app.search import gemini_client
 
     try:
-        from app.search.gemini_client import MODEL_NAME
-
-        model = genai.GenerativeModel(MODEL_NAME)
-        reply = model.generate_content("Reply with the single word: OK")
+        reply = gemini_client._model().generate_content("Reply with the single word: OK")
         return {
             "ok": True,
             "reply": reply.text.strip()[:40],
             "models_available": len(models),
+            "model_in_use": gemini_client._working_model,
             # The direct call above can succeed while the SEARCH pipeline still
             # fails (e.g. an unsupported GenerationConfig). This is the real
             # error from the last /search request.

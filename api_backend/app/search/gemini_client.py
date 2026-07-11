@@ -32,12 +32,48 @@ _STOPWORDS = {
 }
 
 
-# Pinned deliberately. "gemini-flash-latest" is an ALIAS that currently resolves
-# to gemini-3.5-flash, a preview model whose free tier allows only 20 requests a
-# DAY. Each search makes two calls (extract filters + compose answer), so search
-# silently died into keyword fallback after ~10 queries. gemini-2.0-flash is
-# stable and has a far larger free quota.
-MODEL_NAME = "gemini-2.0-flash"
+# Model selection is DELIBERATELY a fallback chain, not a single name.
+#
+# Gemini model availability and free-tier quota vary per API key/project and
+# change without notice. With the current key:
+#   gemini-2.5-flash / -lite  -> 404 "no longer available to new users"
+#   gemini-2.0-flash / -lite  -> 429 quota exceeded (free-tier limit: 0)
+#   gemini-flash-latest       -> 429 quota exceeded (free-tier limit: 20/DAY)
+#   gemini-flash-lite-latest  -> works
+#
+# Search fails soft, so a dead model just silently degrades to keyword matching
+# instead of erroring. Trying candidates in order — and remembering the one that
+# worked — means a quota change on one model doesn't quietly kill the feature.
+MODEL_CANDIDATES = [
+    "gemini-flash-lite-latest",
+    "gemini-2.0-flash",
+    "gemini-flash-latest",
+]
+
+_working_model: str | None = None
+
+
+def _model():
+    """Return a usable GenerativeModel, remembering whichever candidate works."""
+    global _working_model
+    _ensure_configured()
+
+    if _working_model:
+        return genai.GenerativeModel(_working_model)
+
+    last: Exception | None = None
+    for name in MODEL_CANDIDATES:
+        try:
+            model = genai.GenerativeModel(name)
+            model.generate_content("ok")  # cheap liveness check (404/429 surface here)
+            _working_model = name
+            logger.info("Gemini using model %s", name)
+            return model
+        except Exception as exc:  # noqa: BLE001
+            last = exc
+            logger.warning("Gemini model %s unavailable: %s", name, exc)
+
+    raise RuntimeError(f"No usable Gemini model. Last error: {last}")
 
 
 def _ensure_configured() -> None:
@@ -78,7 +114,7 @@ def _get_known_categories(db: Session) -> list[str]:
 
 def _extract_filters(query: str, categories: list[str]) -> dict:
     _ensure_configured()
-    model = genai.GenerativeModel(MODEL_NAME)
+    model = _model()
     categories_text = ", ".join(categories) if categories else "(none yet)"
     response = model.generate_content(
         EXTRACT_FILTERS_PROMPT.format(query=query, categories=categories_text),
@@ -135,7 +171,7 @@ def _query_products(db: Session, filters: dict) -> list[Product]:
 
 def _compose_answer(query: str, products: list[Product]) -> str:
     _ensure_configured()
-    model = genai.GenerativeModel(MODEL_NAME)
+    model = _model()
 
     rows = [
         {
