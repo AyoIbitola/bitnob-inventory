@@ -35,6 +35,47 @@ def root():
     return {"status": "ok"}
 
 
+@app.get("/health/gemini")
+def gemini_probe(_: User = Depends(require_admin)):
+    """Actually CALL Gemini and report what happens.
+
+    Search fails soft (falls back to keyword matching), so a broken Gemini setup
+    is invisible from the outside — you just get worse results. This surfaces the
+    real exception from the running host, which is otherwise only visible in logs.
+    Admin-only.
+    """
+    import google.generativeai as genai
+
+    if not settings.gemini_api_key:
+        return {"ok": False, "stage": "config", "error": "GEMINI_API_KEY is empty"}
+
+    try:
+        genai.configure(api_key=settings.gemini_api_key)
+    except Exception as exc:  # noqa: BLE001
+        return {"ok": False, "stage": "configure", "error": f"{type(exc).__name__}: {exc}"[:400]}
+
+    try:
+        models = [m.name for m in genai.list_models()]
+    except Exception as exc:  # noqa: BLE001
+        return {
+            "ok": False,
+            "stage": "list_models (key rejected?)",
+            "error": f"{type(exc).__name__}: {exc}"[:400],
+        }
+
+    try:
+        model = genai.GenerativeModel("gemini-flash-latest")
+        reply = model.generate_content("Reply with the single word: OK")
+        return {"ok": True, "reply": reply.text.strip()[:40], "models_available": len(models)}
+    except Exception as exc:  # noqa: BLE001
+        return {
+            "ok": False,
+            "stage": "generate_content (model name?)",
+            "error": f"{type(exc).__name__}: {exc}"[:400],
+            "flash_models": [m for m in models if "flash" in m][:8],
+        }
+
+
 @app.get("/health/integrations")
 def integrations(_: User = Depends(require_admin)):
     """Which optional integrations are actually configured on THIS deployment.
