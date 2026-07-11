@@ -92,6 +92,15 @@ export function useRenameCategory() {
   });
 }
 
+/** Upload a unit's image to the backend (Cloudinary). */
+export function useUploadImage() {
+  const qc = useQueryClient();
+  return useMutation({
+    mutationFn: ({ id, file }: { id: string; file: File }) => itemsService.uploadImage(id, file),
+    onSuccess: () => qc.invalidateQueries({ queryKey: itemKeys.all }),
+  });
+}
+
 /** AI natural-language search (POST /search). Run on demand, not on keystroke. */
 export function useAiSearch() {
   return useMutation({

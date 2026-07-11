@@ -31,6 +31,8 @@ export interface ItemsService {
   remove(id: string): Promise<void>;
   /** AI-powered natural-language search (POST /search). */
   aiSearch(query: string): Promise<AiSearchResult>;
+  /** Upload a unit's image (multipart). Returns the updated item with imageUrl. */
+  uploadImage(id: string, file: File): Promise<Item>;
 }
 
 export interface UsersService {

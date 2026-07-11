@@ -52,6 +52,15 @@ export const mockItemsService: ItemsService = {
     items = items.filter((i) => i.id !== id);
   },
 
+  async uploadImage(id: string, file: File): Promise<Item> {
+    await delay();
+    const index = items.findIndex((i) => i.id === id);
+    if (index === -1) throw new ApiError(404, "Item not found.");
+    const updated = { ...items[index], imageUrl: URL.createObjectURL(file) };
+    items = items.map((i) => (i.id === id ? updated : i));
+    return updated;
+  },
+
   async aiSearch(query: string): Promise<AiSearchResult> {
     await delay(700);
     const q = query.toLowerCase();

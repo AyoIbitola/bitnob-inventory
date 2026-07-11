@@ -12,6 +12,7 @@ export interface ProductOut {
   category: string | null;
   description: string | null;
   price: number | null;
+  image_url: string | null;
   created_at: string;
   updated_at: string;
 }
@@ -44,6 +45,7 @@ export function toItem(p: ProductOut): Item {
     category: p.category ?? undefined,
     description: p.description ?? undefined,
     price: p.price ?? undefined,
+    imageUrl: p.image_url ?? undefined,
     createdAt: p.created_at,
     updatedAt: p.updated_at,
   };

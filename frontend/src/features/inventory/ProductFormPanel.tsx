@@ -5,10 +5,11 @@ import { Button } from "@/components/Button";
 import { Icon } from "@/components/Icon";
 import { InputField, TextareaField } from "@/components/FormField";
 import { useToast } from "@/components/Toast";
+import { ApiError } from "@/api";
 import { CURRENCY } from "@/config";
 import { fileToDownscaledDataUrl, imageStore } from "@/lib/imageStore";
 import type { ItemInput, ProductGroup } from "@/types";
-import { useCreateUnits } from "./hooks";
+import { useCreateUnits, useUploadImage } from "./hooks";
 
 interface ProductFormPanelProps {
   open: boolean;
@@ -35,6 +36,7 @@ interface UnitDraft {
 export function ProductFormPanel({ open, onClose, prefill, knownCategories }: ProductFormPanelProps) {
   const { toast } = useToast();
   const createUnits = useCreateUnits();
+  const uploadImage = useUploadImage();
 
   const [brand, setBrand] = useState("");
   const [modelNo, setModelNo] = useState("");
@@ -44,7 +46,10 @@ export function ProductFormPanel({ open, onClose, prefill, knownCategories }: Pr
   const [defaultDescription, setDefaultDescription] = useState("");
   /** One row per PHYSICAL unit: its serial (product ID) and its OWN description. */
   const [units, setUnits] = useState<UnitDraft[]>([{ serial: "", description: "" }]);
+  /** Preview shown in the form. */
   const [image, setImage] = useState<string | null>(null);
+  /** The real file, uploaded to the backend after the unit exists (needs its id). */
+  const [imageFile, setImageFile] = useState<File | null>(null);
   const [imageBusy, setImageBusy] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [failures, setFailures] = useState<Array<{ serialNumber: string; message: string }>>([]);
@@ -60,6 +65,7 @@ export function ProductFormPanel({ open, onClose, prefill, knownCategories }: Pr
     setDefaultDescription("");
     setUnits([{ serial: "", description: "" }]);
     setImage(null);
+    setImageFile(null);
     setError(null);
     setFailures([]);
   }, [open, prefill]);
@@ -95,11 +101,34 @@ export function ProductFormPanel({ open, onClose, prefill, knownCategories }: Pr
     if (!file) return;
     setImageBusy(true);
     try {
-      setImage(await fileToDownscaledDataUrl(file));
+      setImage(await fileToDownscaledDataUrl(file)); // local preview
+      setImageFile(file); // the real upload happens once the unit has an id
     } catch {
       setError("Couldn't process that image.");
     } finally {
       setImageBusy(false);
+    }
+  }
+
+  /**
+   * Push the image to the backend (Cloudinary) so every user sees it.
+   * If the server has no Cloudinary credentials yet it returns 503 — in that
+   * case we keep the browser-local stopgap so the admin isn't blocked, and say
+   * so plainly rather than pretending it was shared.
+   */
+  async function persistImage(itemId: string) {
+    if (!imageFile) return;
+    try {
+      await uploadImage.mutateAsync({ id: itemId, file: imageFile });
+    } catch (err) {
+      if (image) imageStore.set(itemId, image);
+      const notConfigured = err instanceof ApiError && err.status === 503;
+      toast(
+        notConfigured
+          ? "Image saved on this device only — shared images need Cloudinary credentials."
+          : "Item saved, but the image upload failed.",
+        "error",
+      );
     }
   }
 
@@ -140,7 +169,7 @@ export function ProductFormPanel({ open, onClose, prefill, knownCategories }: Pr
 
     const { created, failed } = await createUnits.mutateAsync(inputs);
 
-    if (image && created[0]) imageStore.set(created[0].id, image);
+    if (created[0]) await persistImage(created[0].id);
 
     if (failed.length) {
       setFailures(failed);
@@ -320,7 +349,10 @@ export function ProductFormPanel({ open, onClose, prefill, knownCategories }: Pr
               <img src={image} alt="Product preview" className="h-40 w-full object-cover" />
               <button
                 type="button"
-                onClick={() => setImage(null)}
+                onClick={() => {
+                  setImage(null);
+                  setImageFile(null);
+                }}
                 aria-label="Remove image"
                 className="absolute right-sm top-sm flex h-8 w-8 items-center justify-center rounded-full bg-on-background/60 text-white hover:bg-on-background/80"
               >

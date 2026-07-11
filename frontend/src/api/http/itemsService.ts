@@ -1,6 +1,6 @@
 import type { ItemsService } from "@/api/services";
 import type { AiSearchResult, Item, ItemInput } from "@/types";
-import { request } from "@/api/http";
+import { request, upload } from "@/api/http";
 import { toItem, toProductWrite, type ProductOut } from "./mappers";
 
 /**
@@ -39,6 +39,10 @@ export const httpItemsService: ItemsService = {
 
   async remove(id: string): Promise<void> {
     await request<void>(`/products/${id}`, { method: "DELETE" });
+  },
+
+  async uploadImage(id: string, file: File): Promise<Item> {
+    return toItem(await upload<ProductOut>(`/products/${id}/image`, file));
   },
 
   async aiSearch(query: string): Promise<AiSearchResult> {

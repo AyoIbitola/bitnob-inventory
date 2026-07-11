@@ -45,6 +45,8 @@ export interface Item {
   description?: string;
   /** Backend `price` — the UNIT price (nullable bare number, no currency). */
   price?: number;
+  /** Cloudinary URL from the backend (`image_url`). Public; any signed-in user sees it. */
+  imageUrl?: string;
   createdAt?: string;
   updatedAt: string;
 }

@@ -93,6 +93,37 @@ export async function request<T>(path: string, options: RequestOptions = {}): Pr
   return parsed as T;
 }
 
+/**
+ * Multipart upload. Separate from request() because the browser must set the
+ * multipart boundary itself — forcing Content-Type: application/json here would
+ * make FastAPI reject the file.
+ */
+export async function upload<T>(path: string, file: File, field = "file"): Promise<T> {
+  const url = new URL(`${API_BASE_URL}${path}`, window.location.origin);
+  const form = new FormData();
+  form.append(field, file);
+
+  const token = getToken();
+  const res = await fetch(url.toString(), {
+    method: "POST",
+    headers: token ? { Authorization: `Bearer ${token}` } : undefined,
+    body: form,
+  });
+
+  const text = await res.text();
+  const parsed = text ? safeJson(text) : undefined;
+
+  if (!res.ok) {
+    const body = parsed as { detail?: unknown } | undefined;
+    const message =
+      typeof body?.detail === "string" ? body.detail : `Upload failed (${res.status})`;
+    if (res.status === 401) onUnauthorized();
+    throw new ApiError(res.status, message, parsed);
+  }
+
+  return parsed as T;
+}
+
 function safeJson(text: string): unknown {
   try {
     return JSON.parse(text);

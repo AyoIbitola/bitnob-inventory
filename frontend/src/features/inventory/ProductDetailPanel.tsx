@@ -29,6 +29,12 @@ export function ProductDetailPanel({
   onDeleteUnit,
   onAddUnits,
 }: ProductDetailPanelProps) {
+  // Prefer the shared Cloudinary URL; fall back to the browser-local stopgap
+  // for images uploaded before Cloudinary was configured.
+  const productImage =
+    group?.units.find((u) => u.imageUrl)?.imageUrl ??
+    (group ? imageStore.get(group.units[0]?.id ?? "") : null);
+
   return (
     <SidePanel
       open={open}
@@ -51,9 +57,9 @@ export function ProductDetailPanel({
           {/* Identity */}
           <div className="mb-lg flex flex-col items-center text-center">
             <div className="mb-md flex h-[110px] w-[110px] items-center justify-center overflow-hidden rounded-lg border border-outline-variant bg-surface-container">
-              {imageStore.get(group.units[0]?.id ?? "") ? (
+              {productImage ? (
                 <img
-                  src={imageStore.get(group.units[0].id) as string}
+                  src={productImage}
                   alt={group.name}
                   className="h-full w-full object-cover"
                 />
