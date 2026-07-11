@@ -63,10 +63,20 @@ def gemini_probe(_: User = Depends(require_admin)):
             "error": f"{type(exc).__name__}: {exc}"[:400],
         }
 
+    from app.search import gemini_client
+
     try:
         model = genai.GenerativeModel("gemini-flash-latest")
         reply = model.generate_content("Reply with the single word: OK")
-        return {"ok": True, "reply": reply.text.strip()[:40], "models_available": len(models)}
+        return {
+            "ok": True,
+            "reply": reply.text.strip()[:40],
+            "models_available": len(models),
+            # The direct call above can succeed while the SEARCH pipeline still
+            # fails (e.g. an unsupported GenerationConfig). This is the real
+            # error from the last /search request.
+            "last_search_error": gemini_client.LAST_ERROR,
+        }
     except Exception as exc:  # noqa: BLE001
         return {
             "ok": False,

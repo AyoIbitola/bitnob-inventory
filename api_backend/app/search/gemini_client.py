@@ -13,6 +13,17 @@ logger = logging.getLogger(__name__)
 
 _configured = False
 
+# Last failure from the Gemini path, surfaced by GET /health/gemini. Search
+# degrades silently to keyword matching, so without this a broken LLM call is
+# invisible unless you can read the host's logs.
+LAST_ERROR: dict[str, str] | None = None
+
+
+def _record_error(stage: str, exc: Exception) -> None:
+    global LAST_ERROR
+    LAST_ERROR = {"stage": stage, "error": f"{type(exc).__name__}: {exc}"[:500]}
+    logger.exception("Gemini failed at %s", stage)
+
 # Carry no signal when falling back to keyword matching.
 _STOPWORDS = {
     "a", "all", "an", "and", "any", "are", "do", "does", "find", "for", "get", "have",
@@ -167,8 +178,8 @@ def run_inventory_search(query: str, db: Session) -> dict:
     if ai_available:
         try:
             filters = _extract_filters(query, categories)
-        except Exception:  # noqa: BLE001 - any Gemini/network failure
-            logger.exception("Gemini filter extraction failed; falling back to keyword search")
+        except Exception as exc:  # noqa: BLE001 - any Gemini/network failure
+            _record_error("extract_filters", exc)
 
     if filters is None:
         filters = _keyword_filters(query, categories)
@@ -179,8 +190,8 @@ def run_inventory_search(query: str, db: Session) -> dict:
     if ai_available:
         try:
             answer = _compose_answer(query, products)
-        except Exception:  # noqa: BLE001
-            logger.exception("Gemini answer composition failed; falling back to plain answer")
+        except Exception as exc:  # noqa: BLE001
+            _record_error("compose_answer", exc)
 
     if answer is None:
         answer = _plain_answer(query, products)
