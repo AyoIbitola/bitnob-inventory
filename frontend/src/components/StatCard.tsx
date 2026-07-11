@@ -15,6 +15,7 @@ interface StatCardProps {
    */
   tone?: "default" | "warning" | "error" | "primary";
   loading?: boolean;
+  className?: string;
 }
 
 const valueTone = {
@@ -24,20 +25,55 @@ const valueTone = {
   primary: "text-primary",
 } as const;
 
-/** Compact metric card for dashboard summaries. */
-export function StatCard({ label, value, icon, hint, tone = "default", loading }: StatCardProps) {
+/**
+ * Compact metric card.
+ *
+ * Overflow safety is deliberate: a long value (e.g. a big currency amount on a
+ * narrow phone) must never spill outside the card. `overflow-hidden` on the box
+ * + `min-w-0` + `truncate` on the value makes that structurally impossible, and
+ * the type scales down on small screens instead of being clipped.
+ */
+export function StatCard({
+  label,
+  value,
+  icon,
+  hint,
+  tone = "default",
+  loading,
+  className,
+}: StatCardProps) {
   return (
-    <div className="rounded-lg border border-outline-variant bg-surface-container-lowest p-md shadow-sm">
-      <div className="flex items-start justify-between">
-        <p className="text-label-caps uppercase text-on-surface-variant">{label}</p>
-        {icon && <Icon name={icon} className="text-primary" />}
+    <div
+      className={cn(
+        "flex min-w-0 flex-col overflow-hidden rounded-lg border border-outline-variant bg-surface-container-lowest p-md shadow-sm",
+        className,
+      )}
+    >
+      <div className="flex items-start justify-between gap-sm">
+        <p className="min-w-0 truncate text-label-caps uppercase text-on-surface-variant">
+          {label}
+        </p>
+        {icon && <Icon name={icon} className="flex-shrink-0 text-[20px] text-primary" />}
       </div>
+
       {loading ? (
         <div className="mt-sm h-8 w-20 animate-pulse rounded bg-surface-variant" />
       ) : (
-        <p className={cn("mt-sm text-display-md font-bold", valueTone[tone])}>{value}</p>
+        <p
+          // title => the full value stays reachable even if visually truncated.
+          title={typeof value === "string" || typeof value === "number" ? String(value) : undefined}
+          className={cn(
+            "mt-sm min-w-0 truncate text-headline-sm font-bold tabular-nums md:text-display-md",
+            valueTone[tone],
+          )}
+        >
+          {value}
+        </p>
       )}
-      {hint && <div className="mt-sm text-body-sm text-on-surface-variant">{hint}</div>}
+
+      {hint && (
+        <div className="mt-sm truncate text-body-sm text-on-surface-variant">{hint}</div>
+      )}
     </div>
   );
 }

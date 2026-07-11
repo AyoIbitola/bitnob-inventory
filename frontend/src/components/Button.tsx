@@ -18,7 +18,8 @@ interface ButtonProps extends ButtonHTMLAttributes<HTMLButtonElement> {
 }
 
 const base =
-  "inline-flex items-center justify-center gap-sm rounded-lg font-semibold transition-all " +
+  // whitespace-nowrap: a button label must never wrap to two lines.
+  "inline-flex items-center justify-center gap-sm whitespace-nowrap rounded-lg font-semibold transition-all " +
   "focus:outline-none focus-visible:ring-2 focus-visible:ring-offset-2 focus-visible:ring-primary-container " +
   "disabled:opacity-50 disabled:pointer-events-none active:scale-[0.98]";
 

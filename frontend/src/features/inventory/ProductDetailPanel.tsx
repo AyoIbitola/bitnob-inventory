@@ -141,9 +141,13 @@ export function ProductDetailPanel({
 
 function Stat({ label, value }: { label: string; value: string }) {
   return (
-    <div className="rounded-lg border border-outline-variant bg-surface-container-low px-md py-sm">
-      <dt className="text-label-caps uppercase tracking-wider text-on-surface-variant">{label}</dt>
-      <dd className="mt-0.5 text-body-md font-semibold text-on-surface">{value}</dd>
+    <div className="min-w-0 overflow-hidden rounded-lg border border-outline-variant bg-surface-container-low px-md py-sm">
+      <dt className="truncate text-label-caps uppercase tracking-wider text-on-surface-variant">
+        {label}
+      </dt>
+      <dd className="mt-0.5 truncate text-body-md font-semibold tabular-nums text-on-surface" title={value}>
+        {value}
+      </dd>
     </div>
   );
 }

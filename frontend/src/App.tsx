@@ -50,9 +50,11 @@ export default function App() {
                 <Route path="reports" element={<ReportsPage />} />
                 <Route path="settings" element={<SettingsPage />} />
 
+                {/* Legacy path — Inventory lives at "/" now. */}
+                <Route path="inventory" element={<Navigate to="/" replace />} />
+
                 {/* Admin-only routes — hard-gated, inaccessible to staff. */}
                 <Route element={<RequireRole role="admin" />}>
-                  <Route path="inventory" element={<InventoryPage />} />
                   <Route path="users" element={<UsersPage />} />
                 </Route>
               </Route>

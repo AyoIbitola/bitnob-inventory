@@ -7,11 +7,23 @@ import { CURRENCY } from "@/config";
 import type { Item } from "@/types";
 
 export function formatCurrency(amount: number, currency = CURRENCY): string {
-  return new Intl.NumberFormat(undefined, {
-    style: "currency",
-    currency,
-    maximumFractionDigits: 2,
-  }).format(amount);
+  // narrowSymbol => "₦173,000" instead of the much wider literal "NGN 173,000.00".
+  // Whole naira: kobo decimals add width and no information for hardware prices.
+  try {
+    return new Intl.NumberFormat("en-NG", {
+      style: "currency",
+      currency,
+      currencyDisplay: "narrowSymbol",
+      maximumFractionDigits: 0,
+    }).format(amount);
+  } catch {
+    // Some engines don't support narrowSymbol — fall back rather than throw.
+    return new Intl.NumberFormat("en-NG", {
+      style: "currency",
+      currency,
+      maximumFractionDigits: 0,
+    }).format(amount);
+  }
 }
 
 /** Human-facing product name. Backend has no `name`; compose brand + model. */

@@ -14,11 +14,13 @@ export interface NavItem {
  * Admin section simply doesn't exist for staff (req #3).
  */
 export const NAV_ITEMS: NavItem[] = [
-  { label: "Inventory", icon: "dashboard", to: "/", section: "main" },
+  // NOTE: there is no separate "Manage Inventory" entry. Inventory is one page
+  // that adapts to the role — admins get Add/Edit/Delete on it — so a second
+  // link to the same screen was pure duplication.
+  { label: "Inventory", icon: "inventory_2", to: "/", section: "main" },
   { label: "Categories", icon: "category", to: "/categories", section: "main" },
   { label: "Reports", icon: "analytics", to: "/reports", section: "main" },
   { label: "Settings", icon: "settings", to: "/settings", section: "main" },
 
-  { label: "Manage Inventory", icon: "inventory_2", to: "/inventory", section: "admin", role: "admin" },
   { label: "Users", icon: "group", to: "/users", section: "admin", role: "admin" },
 ];

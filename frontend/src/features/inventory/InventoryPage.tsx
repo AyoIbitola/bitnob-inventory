@@ -202,7 +202,10 @@ export function InventoryPage() {
           variant="secondary"
           size="sm"
           icon="auto_awesome"
-          className="ml-sm"
+          className="ml-sm flex-shrink-0"
+          // The label collapses on phones, so the button needs its own
+          // accessible name — an icon-only control with none is a WCAG failure.
+          aria-label="Ask AI about your inventory"
           title="Ask AI: query your inventory in plain English, e.g. “what's low on stock?”"
           onClick={() => setAiOpen(true)}
         >
@@ -244,7 +247,10 @@ export function InventoryPage() {
             icon="trending_down"
             hint={`${lowStockThreshold} units or fewer`}
           />
+          {/* 5 cards in a 2-col phone grid leaves this one orphaned half-width,
+              so it spans the full row on small screens. */}
           <StatCard
+            className="col-span-2 md:col-span-1"
             label="Out of Stock"
             value={formatNumber(summary.outOfStock)}
             loading={isLoading}
@@ -349,8 +355,8 @@ export function InventoryPage() {
                     {formatNumber(g.totalUnits)} units · {formatPrice(g.unitPrice)} each
                   </div>
                 </div>
-                <div className="flex-shrink-0 text-right">
-                  <div className="font-semibold text-on-surface">
+                <div className="min-w-0 flex-shrink text-right">
+                  <div className="truncate font-semibold tabular-nums text-on-surface">
                     {formatPrice(g.totalValue)}
                   </div>
                   <div className="text-body-sm text-on-surface-variant">total</div>

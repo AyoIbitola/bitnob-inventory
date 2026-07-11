@@ -180,21 +180,41 @@ export function UsersPage() {
           error={isError ? "Couldn't load users." : null}
           onRetry={() => refetch()}
           renderCard={(u) => (
-            <div className="flex items-center justify-between gap-md">
-              <div className="min-w-0">
-                <span className="block truncate font-semibold text-on-surface">{u.email}</span>
-                <div className="mt-xs">
-                  <Badge tone={u.role === "admin" ? "info" : "neutral"}>{u.role}</Badge>
-                </div>
+            // Actions get their own row on phones — side-by-side with a long
+            // email squeezes the buttons until their labels wrap.
+            <div className="flex flex-col gap-sm">
+              <div className="flex items-center gap-sm">
+                <span className="flex h-8 w-8 flex-shrink-0 items-center justify-center rounded-full bg-secondary-container text-label-caps font-bold text-on-secondary-container">
+                  {u.initials ?? u.email.slice(0, 2).toUpperCase()}
+                </span>
+                <span className="min-w-0 flex-1">
+                  <span className="block truncate font-semibold text-on-surface">{u.email}</span>
+                  {u.id === currentUser?.id && (
+                    <span className="text-body-sm text-on-surface-variant">You</span>
+                  )}
+                </span>
+                <Badge tone={u.role === "admin" ? "info" : "neutral"}>{u.role}</Badge>
               </div>
-              <Button
-                variant={u.role === "admin" ? "danger-outline" : "secondary"}
-                size="sm"
-                disabled={u.id === currentUser?.id && u.role === "admin"}
-                onClick={() => (u.role === "admin" ? applyAdmin(u, false) : setConfirmTarget(u))}
-              >
-                {u.role === "admin" ? "Revoke" : "Make admin"}
-              </Button>
+              <div className="flex gap-sm">
+                <Button
+                  variant="secondary"
+                  size="sm"
+                  icon="key"
+                  className="flex-1"
+                  onClick={() => setResetTarget(u)}
+                >
+                  Reset password
+                </Button>
+                <Button
+                  variant={u.role === "admin" ? "danger-outline" : "secondary"}
+                  size="sm"
+                  className="flex-1"
+                  disabled={u.id === currentUser?.id && u.role === "admin"}
+                  onClick={() => (u.role === "admin" ? applyAdmin(u, false) : setConfirmTarget(u))}
+                >
+                  {u.role === "admin" ? "Revoke admin" : "Make admin"}
+                </Button>
+              </div>
             </div>
           )}
           emptyState={
