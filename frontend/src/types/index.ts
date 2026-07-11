@@ -43,6 +43,8 @@ export interface Item {
   currency: string;
   /** Derived client-side from quantity. */
   status: StockStatus;
+  /** Cloudinary image-hosted public URL; absent if there is no image. */
+  imageUrl?: string;
   createdAt?: string;
   updatedAt: string;
 }

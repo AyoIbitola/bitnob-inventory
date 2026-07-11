@@ -46,23 +46,32 @@ export async function request<T>(path: string, options: RequestOptions = {}): Pr
     }
   }
 
+  // FormData (file uploads) must NOT be JSON-encoded, and the browser has to
+  // set its own multipart Content-Type (with boundary) so that we can omit ours.
+  const isFormData = body instanceof FormData;
+
   const token = getToken();
   const res = await fetch(url.toString(), {
     ...rest,
     headers: {
-      "Content-Type": "application/json",
+      ...(isFormData ? {} : { "Content-Type": "application/json" }),
       ...(token ? { Authorization: `Bearer ${token}` } : {}),
       ...headers,
     },
-    body: body !== undefined ? JSON.stringify(body) : undefined,
+    body: body === undefined ? undefined : isFormData ? body : JSON.stringify(body),
   });
 
   const text = await res.text();
   const parsed = text ? safeJson(text) : undefined;
 
   if (!res.ok) {
+    // FastAPI returns errors as `{ detail: ... }`; some other backends use
+    // `{ message: ... }`. Try both before falling back to a generic string.
+    const p = parsed as { message?: string; detail?: unknown } | undefined;
     const message =
-      (parsed as { message?: string } | undefined)?.message ?? `Request failed (${res.status})`;
+      p?.message ??
+      (typeof p?.detail === "string" ? p.detail : undefined) ??
+      `Request failed (${res.status})`;
     throw new ApiError(res.status, message, parsed);
   }
 

@@ -79,6 +79,25 @@ export const mockItemsService: ItemsService = {
     items = items.filter((i) => i.id !== id);
   },
 
+  async uploadImage(id: string, file: File): Promise<Item> {
+    await delay();
+    const index = items.findIndex((i) => i.id === id);
+    if (index === -1) throw new ApiError(404, "Item not found.");
+    // Mock has no real upload — just hold an object URL so the preview works.
+    const updated: Item = { ...items[index], imageUrl: URL.createObjectURL(file) };
+    items = items.map((i) => (i.id === id ? updated : i));
+    return updated;
+  },
+
+  async removeImage(id: string): Promise<Item> {
+    await delay();
+    const index = items.findIndex((i) => i.id === id);
+    if (index === -1) throw new ApiError(404, "Item not found.");
+    const updated: Item = { ...items[index], imageUrl: undefined };
+    items = items.map((i) => (i.id === id ? updated : i));
+    return updated;
+  },
+
   async categories() {
     await delay(150);
     const names = Array.from(

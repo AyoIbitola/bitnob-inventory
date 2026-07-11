@@ -1,40 +1,11 @@
 /**
- * Local image store — a STOPGAP until the backend adds an image field to
- * Product. Admin-uploaded images are downscaled and kept in localStorage keyed
- * by item id, then displayed in the table and detail panel.
- *
- * ⚠️ Limitations (flagged in DESIGN-NOTES): images live only in the browser
- * that uploaded them — they are NOT shared across users/devices and don't
- * survive a cache clear. When the backend exposes `image_url` (+ an upload or
- * storage endpoint), move this into the api layer and drop localStorage.
+ * Image helpers. Images themselves now live in Cloudinary (uploaded via the
+ * backend, see api/http/itemsService.ts) — this module only provides a local
+ * downscale used to render an instant preview in the upload form before the
+ * real file is sent.
  */
 
-const PREFIX = "bitvault.img.";
-const MAX_DIM = 512; // px — keep localStorage footprint small
-
-export const imageStore = {
-  get(id: string): string | null {
-    try {
-      return localStorage.getItem(PREFIX + id);
-    } catch {
-      return null;
-    }
-  },
-  set(id: string, dataUrl: string): void {
-    try {
-      localStorage.setItem(PREFIX + id, dataUrl);
-    } catch {
-      /* quota exceeded — ignore, image just won't persist */
-    }
-  },
-  remove(id: string): void {
-    try {
-      localStorage.removeItem(PREFIX + id);
-    } catch {
-      /* no-op */
-    }
-  },
-};
+const MAX_DIM = 512; // px — preview only; the original file is what we upload
 
 /** Read a File, downscale it to a JPEG data URL (bounded by MAX_DIM). */
 export function fileToDownscaledDataUrl(file: File): Promise<string> {

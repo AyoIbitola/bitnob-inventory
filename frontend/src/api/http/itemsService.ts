@@ -66,6 +66,21 @@ export const httpItemsService: ItemsService = {
     await request<void>(`/products/${id}`, { method: "DELETE" });
   },
 
+  async uploadImage(id: string, file: File): Promise<Item> {
+    const form = new FormData();
+    form.append("file", file);
+    const product = await request<ProductOut>(`/products/${id}/image`, {
+      method: "POST",
+      body: form,
+    });
+    return toItem(product);
+  },
+
+  async removeImage(id: string): Promise<Item> {
+    const product = await request<ProductOut>(`/products/${id}/image`, { method: "DELETE" });
+    return toItem(product);
+  },
+
   async categories(): Promise<Category[]> {
     // No categories endpoint — derive distinct categories from the catalog.
     const items = await fetchProducts({});

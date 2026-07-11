@@ -39,6 +39,10 @@ export interface ItemsService {
   create(input: ItemInput): Promise<Item>;
   update(id: string, input: ItemInput): Promise<Item>;
   remove(id: string): Promise<void>;
+  /** When an image is uploaded/replaced, this returns the updated item. */
+  uploadImage(id: string, file: File): Promise<Item>;
+  /** When an image is removed, this returns the updated item, probably NULL */
+  removeImage(id: string): Promise<Item>;
   categories(): Promise<Category[]>;
   summary(): Promise<InventorySummary>;
   /** AI-powered natural-language search (POST /search). */

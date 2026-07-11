@@ -28,5 +28,11 @@ class Product(Base):
     description = Column(Text)
     quantity = Column(Integer, default=0, nullable=False)
     price = Column(Numeric(10, 2), nullable=True)
+    # Images are hosted on cloudinary with the url set to be public secure URL served to
+    # every viewer; `image_public_id` is cloudinary's asset id, kept so we can
+    # replace/delete the image (asset) later. Both will be empty (null) until an admin uploads 
+    # an image for an item when filling an inventory
+    image_url = Column(String(500), nullable=True)
+    image_public_id = Column(String(255), nullable=True)
     created_at = Column(DateTime, default=_utcnow)
     updated_at = Column(DateTime, default=_utcnow, onupdate=_utcnow)

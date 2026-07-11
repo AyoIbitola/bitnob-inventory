@@ -6,9 +6,15 @@ import { Icon } from "@/components/Icon";
 import { InputField, TextareaField } from "@/components/FormField";
 import { ApiError } from "@/api";
 import { CURRENCY } from "@/config";
-import { fileToDownscaledDataUrl, imageStore } from "@/lib/imageStore";
+import { fileToDownscaledDataUrl } from "@/lib/imageStore";
 import type { Item, ItemInput } from "@/types";
-import { useCategories, useCreateItem, useUpdateItem } from "./hooks";
+import {
+  useCategories,
+  useCreateItem,
+  useRemoveItemImage,
+  useUpdateItem,
+  useUploadItemImage,
+} from "./hooks";
 
 interface ItemFormPanelProps {
   open: boolean;
@@ -63,11 +69,17 @@ export function ItemFormPanel({ open, onClose, item, onSaved }: ItemFormPanelPro
   const { data: categories } = useCategories();
   const createItem = useCreateItem();
   const updateItem = useUpdateItem();
+  const uploadImage = useUploadItemImage();
+  const removeImage = useRemoveItemImage();
 
   const [form, setForm] = useState<FormState>(fromItem(item));
   const [errors, setErrors] = useState<Errors>({});
   const [submitError, setSubmitError] = useState<string | null>(null);
+  // `image` is the preview shown in the panel; `imageFile` is the pending
+  // upload (null when unchanged or cleared). `imageTouched` gates whether we
+  // sync to the backend on save.
   const [image, setImage] = useState<string | null>(null);
+  const [imageFile, setImageFile] = useState<File | null>(null);
   const [imageTouched, setImageTouched] = useState(false);
   const [imageBusy, setImageBusy] = useState(false);
 
@@ -76,7 +88,8 @@ export function ItemFormPanel({ open, onClose, item, onSaved }: ItemFormPanelPro
       setForm(fromItem(item));
       setErrors({});
       setSubmitError(null);
-      setImage(item ? imageStore.get(item.id) : null);
+      setImage(item?.imageUrl ?? null);
+      setImageFile(null);
       setImageTouched(false);
     }
   }, [open, item]);
@@ -85,8 +98,11 @@ export function ItemFormPanel({ open, onClose, item, onSaved }: ItemFormPanelPro
     if (!file) return;
     setImageBusy(true);
     try {
+      // Cloudinary handles image optimization at its end, so we don't need to downscale 
+      // the uploaded imaages
       const dataUrl = await fileToDownscaledDataUrl(file);
       setImage(dataUrl);
+      setImageFile(file);
       setImageTouched(true);
     } catch {
       setSubmitError("Couldn't process that image. Try a different file.");
@@ -97,10 +113,15 @@ export function ItemFormPanel({ open, onClose, item, onSaved }: ItemFormPanelPro
 
   function clearImage() {
     setImage(null);
+    setImageFile(null);
     setImageTouched(true);
   }
 
-  const saving = createItem.isPending || updateItem.isPending;
+  const saving =
+    createItem.isPending ||
+    updateItem.isPending ||
+    uploadImage.isPending ||
+    removeImage.isPending;
 
   function set<K extends keyof FormState>(key: K, value: FormState[K]) {
     setForm((prev) => ({ ...prev, [key]: value }));
@@ -136,13 +157,14 @@ export function ItemFormPanel({ open, onClose, item, onSaved }: ItemFormPanelPro
     };
 
     try {
-      const saved = isEdit
+      let saved = isEdit
         ? await updateItem.mutateAsync({ id: item.id, input: payload })
         : await createItem.mutateAsync(payload);
-      // Persist the image locally against the saved item id (stopgap store).
+      // Sync the image to Cloudinary against the saved item id. Upload needs the
+      // id, so it happens after create/update item returns.
       if (imageTouched) {
-        if (image) imageStore.set(saved.id, image);
-        else imageStore.remove(saved.id);
+        if (imageFile) saved = await uploadImage.mutateAsync({ id: saved.id, file: imageFile });
+        else saved = await removeImage.mutateAsync(saved.id);
       }
       onSaved?.(saved);
       onClose();
@@ -244,8 +266,8 @@ export function ItemFormPanel({ open, onClose, item, onSaved }: ItemFormPanelPro
           onChange={(e) => set("description", e.target.value)}
         />
 
-        {/* Image upload — stored locally per item until the backend adds an
-            image field (flagged in DESIGN-NOTES). */}
+        {/* Image upload — sent to Cloudinary through the backend on save, so it
+            syncs to every viewer (see uploadImage/removeImage in hooks). */}
         <div className="flex flex-col gap-xs">
           <span className="text-label-caps uppercase tracking-wider text-on-surface-variant">
             Item Image

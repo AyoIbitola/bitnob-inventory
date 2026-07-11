@@ -13,6 +13,7 @@ export interface ProductOut {
   description: string | null;
   quantity: number;
   price: number | null;
+  image_url: string | null;
   created_at: string;
   updated_at: string;
 }
@@ -55,6 +56,7 @@ export function toItem(p: ProductOut): Item {
     price: p.price ?? undefined,
     currency: CURRENCY,
     status: deriveStatus(p.quantity),
+    imageUrl: p.image_url ?? undefined,
     createdAt: p.created_at,
     updatedAt: p.updated_at,
   };

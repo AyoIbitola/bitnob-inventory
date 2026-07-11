@@ -3,7 +3,6 @@ import { Modal } from "@/components/Modal";
 import { Button } from "@/components/Button";
 import { ApiError } from "@/api";
 import { itemDisplayName } from "@/lib/format";
-import { imageStore } from "@/lib/imageStore";
 import type { Item } from "@/types";
 import { useDeleteItem } from "./hooks";
 
@@ -29,7 +28,7 @@ export function DeleteItemModal({ item, open, onClose, onDeleted }: DeleteItemMo
     setError(null);
     try {
       await deleteItem.mutateAsync(item.id);
-      imageStore.remove(item.id);
+      // The backend removes the Cloudinary image as part of the delete.
       onDeleted?.(item);
       onClose();
     } catch (err) {

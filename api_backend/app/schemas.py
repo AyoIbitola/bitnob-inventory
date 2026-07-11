@@ -63,6 +63,10 @@ class ProductOut(ProductBase):
     model_config = ConfigDict(from_attributes=True)
 
     id: int
+    # The image url is set through a separate endpoint POST /products/{id}/image 
+    # (not the create/update payload), so it  exists even when an item is created, not 
+    # only when image an image has been added
+    image_url: str | None = None
     created_at: datetime
     updated_at: datetime
 

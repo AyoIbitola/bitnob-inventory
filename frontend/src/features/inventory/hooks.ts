@@ -83,6 +83,30 @@ export function useDeleteItem() {
   });
 }
 
+/** Uploadin, replacing and removing an item's image all refreshes the cache so
+ *  the new (or cleared) image shows up in the table and detail views. */
+export function useUploadItemImage() {
+  const qc = useQueryClient();
+  return useMutation({
+    mutationFn: ({ id, file }: { id: string; file: File }) => itemsService.uploadImage(id, file),
+    onSuccess: (updated) => {
+      qc.invalidateQueries({ queryKey: itemKeys.all });
+      qc.setQueryData(itemKeys.detail(updated.id), updated);
+    },
+  });
+}
+
+export function useRemoveItemImage() {
+  const qc = useQueryClient();
+  return useMutation({
+    mutationFn: (id: string) => itemsService.removeImage(id),
+    onSuccess: (updated) => {
+      qc.invalidateQueries({ queryKey: itemKeys.all });
+      qc.setQueryData(itemKeys.detail(updated.id), updated);
+    },
+  });
+}
+
 /** AI natural-language search (POST /search). Run on demand, not on keystroke. */
 export function useAiSearch() {
   return useMutation({

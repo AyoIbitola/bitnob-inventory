@@ -2,3 +2,10 @@
 .vscode/
 backend.md
 .DS_Store
+
+# Virtual Environmet
+inventory/
+venv/
+
+# Environment secrets (keep .env.example tracked for deployment)
+.env

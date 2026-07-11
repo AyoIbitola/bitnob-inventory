@@ -12,7 +12,6 @@ import { RoleGate } from "@/auth/guards";
 import { useAuth } from "@/auth/AuthContext";
 import { useDebouncedValue } from "@/hooks/useDebouncedValue";
 import { formatDate, formatNumber, formatPrice, itemDisplayName } from "@/lib/format";
-import { imageStore } from "@/lib/imageStore";
 import { DEFAULT_PAGE_SIZE } from "@/config";
 import type { Item, StockStatus } from "@/types";
 import { useCategories, useInventorySummary, useItems } from "./hooks";
@@ -87,12 +86,11 @@ export function InventoryPage() {
         key: "product",
         header: "Product",
         render: (item) => {
-          const img = imageStore.get(item.id);
           return (
             <div className="flex items-center gap-md">
               <div className="flex h-10 w-10 flex-shrink-0 items-center justify-center overflow-hidden rounded bg-surface-variant">
-                {img ? (
-                  <img src={img} alt="" className="h-full w-full object-cover" />
+                {item.imageUrl ? (
+                  <img src={item.imageUrl} alt="" className="h-full w-full object-cover" />
                 ) : (
                   <Icon name="inventory_2" className="text-[20px] text-on-surface-variant" />
                 )}

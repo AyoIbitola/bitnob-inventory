@@ -5,7 +5,6 @@ import { Icon } from "@/components/Icon";
 import { Spinner } from "@/components/Spinner";
 import { RoleGate } from "@/auth/guards";
 import { formatDate, formatNumber, formatPrice, itemDisplayName } from "@/lib/format";
-import { imageStore } from "@/lib/imageStore";
 import type { Item } from "@/types";
 import { useItem } from "./hooks";
 
@@ -81,9 +80,9 @@ function ItemDetailBody({ item }: { item: Item }) {
     <div>
       <div className="mb-xl flex flex-col items-center">
         <div className="mb-md flex h-[120px] w-[120px] items-center justify-center overflow-hidden rounded-lg border border-outline-variant bg-surface-container">
-          {imageStore.get(item.id) ? (
+          {item.imageUrl ? (
             <img
-              src={imageStore.get(item.id) as string}
+              src={item.imageUrl}
               alt={itemDisplayName(item)}
               className="h-full w-full object-cover"
             />
