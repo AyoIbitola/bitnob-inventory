@@ -12,7 +12,7 @@ from app.config import settings
 from app.database import Base, get_db
 from app.main import app
 
-settings.admin_seed_emails = "seedadmin@example.com"
+settings.allowed_email_domains = ""  # tests use @example.com; open the domain lock
 
 engine = create_engine(
     "sqlite://",
@@ -36,6 +36,10 @@ client = TestClient(app)
 
 
 def test_seed_email_becomes_admin():
+    # Set immediately before use, not at module import time: another test
+    # module importing in the same pytest run also mutates this process-wide
+    # singleton, and whichever import ran last would otherwise silently win.
+    settings.admin_seed_emails = "seedadmin@example.com"
     resp = client.post(
         "/auth/register",
         json={"email": "seedadmin@example.com", "password": "password123"},

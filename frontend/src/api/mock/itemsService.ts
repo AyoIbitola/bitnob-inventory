@@ -29,6 +29,7 @@ export const mockItemsService: ItemsService = {
     }
     const item: Item = {
       ...input,
+      attachedToId: input.attachedToId ?? undefined,
       id: `mock-${Date.now()}-${Math.random().toString(36).slice(2, 7)}`,
       createdAt: new Date().toISOString(),
       updatedAt: new Date().toISOString(),
@@ -41,7 +42,12 @@ export const mockItemsService: ItemsService = {
     await delay();
     const index = items.findIndex((i) => i.id === id);
     if (index === -1) throw new ApiError(404, "Item not found.");
-    const updated: Item = { ...items[index], ...input, updatedAt: new Date().toISOString() };
+    const updated: Item = {
+      ...items[index],
+      ...input,
+      attachedToId: input.attachedToId === undefined ? items[index].attachedToId : (input.attachedToId ?? undefined),
+      updatedAt: new Date().toISOString(),
+    };
     items = items.map((i) => (i.id === id ? updated : i));
     return updated;
   },

@@ -1,6 +1,6 @@
 from datetime import datetime, timezone
 
-from sqlalchemy import Boolean, Column, DateTime, Integer, Numeric, String, Text
+from sqlalchemy import Boolean, Column, DateTime, ForeignKey, Integer, Numeric, String, Text
 
 from app.database import Base
 
@@ -32,5 +32,9 @@ class Product(Base):
     # Both stay null until an admin uploads one.
     image_url = Column(String(500), nullable=True)
     image_public_id = Column(String(255), nullable=True)
+    # Accessories (e.g. a mouse bundled with a desktop) point at the unit they
+    # ship with. ON DELETE SET NULL: deleting the parent unit must not cascade
+    # into deleting the accessory, just orphan the pointer.
+    attached_to_id = Column(Integer, ForeignKey("products.id", ondelete="SET NULL"), nullable=True)
     created_at = Column(DateTime, default=_utcnow)
     updated_at = Column(DateTime, default=_utcnow, onupdate=_utcnow)

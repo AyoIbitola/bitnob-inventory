@@ -19,6 +19,7 @@ import { useItems } from "./hooks";
 import { groupItems } from "./grouping";
 import { ProductDetailPanel } from "./ProductDetailPanel";
 import { ProductFormPanel } from "./ProductFormPanel";
+import { UnitDetailPanel } from "./UnitDetailPanel";
 import { UnitFormPanel } from "./UnitFormPanel";
 import { DeleteItemModal } from "./DeleteItemModal";
 import { AiSearchDialog } from "./AiSearchDialog";
@@ -71,6 +72,8 @@ export function InventoryPage() {
   const [editUnit, setEditUnit] = useState<Item | null>(null);
   const [deleteTarget, setDeleteTarget] = useState<Item | null>(null);
   const [aiOpen, setAiOpen] = useState(false);
+  /** The unit currently shown in the read-only UnitDetailPanel. */
+  const [viewUnit, setViewUnit] = useState<Item | null>(null);
 
   const allGroups = useMemo(
     () => groupItems(items ?? [], lowStockThreshold),
@@ -118,6 +121,12 @@ export function InventoryPage() {
   }, [allGroups]);
 
   const detailGroup = detailKey ? (allGroups.find((g) => g.key === detailKey) ?? null) : null;
+
+  /** Jump the ProductDetailPanel to whichever group a given unit belongs to. */
+  function openGroupForUnit(unit: Item) {
+    const g = allGroups.find((grp) => grp.units.some((u) => u.id === unit.id));
+    if (g) setDetailKey(g.key);
+  }
   const hasFilters = !!(search || category || status);
   const isEmptyCatalog = !isLoading && !isError && allGroups.length === 0;
 
@@ -140,7 +149,12 @@ export function InventoryPage() {
         key: "product",
         header: "Product",
         render: (g) => {
-          const img = g.units.find((u) => u.imageUrl)?.imageUrl ?? imageStore.get(g.units[0]?.id ?? "");
+          // A photo here implies "this is what every unit in the row looks
+          // like" — true only when there's exactly one unit. For a group of
+          // several, borrowing one unit's photo to represent them all was
+          // misleading, so fall back to the generic icon instead.
+          const soleUnit = g.units.length === 1 ? g.units[0] : null;
+          const img = soleUnit ? (soleUnit.imageUrl ?? imageStore.get(soleUnit.id)) : null;
           return (
             <div className="flex items-center gap-md">
               <div className="flex h-10 w-10 flex-shrink-0 items-center justify-center overflow-hidden rounded bg-surface-variant">
@@ -417,8 +431,10 @@ export function InventoryPage() {
       {/* Overlays */}
       <ProductDetailPanel
         group={detailGroup}
+        allItems={items ?? []}
         open={detailKey !== null}
         onClose={() => setDetailKey(null)}
+        onViewUnit={(unit) => setViewUnit(unit)}
         onEditUnit={(unit) => setEditUnit(unit)}
         onDeleteUnit={(unit) => setDeleteTarget(unit)}
         onAddUnits={(g) => {
@@ -426,6 +442,22 @@ export function InventoryPage() {
           setProductFormOpen(true);
           setPrefill(g);
         }}
+        onNavigateToParent={(parent) => openGroupForUnit(parent)}
+      />
+      <UnitDetailPanel
+        unit={viewUnit}
+        allItems={items ?? []}
+        open={viewUnit !== null}
+        onClose={() => setViewUnit(null)}
+        onEdit={(unit) => {
+          setViewUnit(null);
+          setEditUnit(unit);
+        }}
+        onDelete={(unit) => {
+          setViewUnit(null);
+          setDeleteTarget(unit);
+        }}
+        onNavigateToUnit={(unit) => setViewUnit(unit)}
       />
       <ProductFormPanel
         open={productFormOpen}
@@ -440,6 +472,7 @@ export function InventoryPage() {
         open={editUnit !== null}
         unit={editUnit}
         knownCategories={categories}
+        allUnits={items ?? []}
         onClose={() => setEditUnit(null)}
       />
       <DeleteItemModal
@@ -452,8 +485,7 @@ export function InventoryPage() {
         onClose={() => setAiOpen(false)}
         onSelectItem={(item) => {
           setAiOpen(false);
-          const g = allGroups.find((grp) => grp.units.some((u) => u.id === item.id));
-          if (g) setDetailKey(g.key);
+          openGroupForUnit(item);
         }}
       />
     </>

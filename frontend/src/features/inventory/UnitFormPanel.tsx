@@ -3,11 +3,12 @@ import type { FormEvent } from "react";
 import { SidePanel } from "@/components/SidePanel";
 import { Button } from "@/components/Button";
 import { Icon } from "@/components/Icon";
-import { InputField, TextareaField } from "@/components/FormField";
+import { InputField, SelectField, TextareaField } from "@/components/FormField";
 import { ApiError } from "@/api";
 import { useToast } from "@/components/Toast";
 import { CURRENCY } from "@/config";
 import { fileToDownscaledDataUrl, imageStore } from "@/lib/imageStore";
+import { itemDisplayName } from "@/lib/format";
 import type { Item } from "@/types";
 import { useRemoveImage, useUpdateItem, useUploadImage } from "./hooks";
 
@@ -16,13 +17,15 @@ interface UnitFormPanelProps {
   onClose: () => void;
   unit: Item | null;
   knownCategories: string[];
+  /** Full catalog — used to populate the "Attached to" dropdown. */
+  allUnits: Item[];
 }
 
 /**
  * Edit ONE unit. Its serial number is its product ID, so it's editable but
  * called out — changing it re-identifies the physical device.
  */
-export function UnitFormPanel({ open, onClose, unit, knownCategories }: UnitFormPanelProps) {
+export function UnitFormPanel({ open, onClose, unit, knownCategories, allUnits }: UnitFormPanelProps) {
   const { toast } = useToast();
   const updateItem = useUpdateItem();
   const uploadImage = useUploadImage();
@@ -38,6 +41,7 @@ export function UnitFormPanel({ open, onClose, unit, knownCategories }: UnitForm
   const [category, setCategory] = useState("");
   const [price, setPrice] = useState("");
   const [description, setDescription] = useState("");
+  const [attachedToId, setAttachedToId] = useState("");
   const [error, setError] = useState<string | null>(null);
 
   useEffect(() => {
@@ -48,9 +52,15 @@ export function UnitFormPanel({ open, onClose, unit, knownCategories }: UnitForm
     setCategory(unit.category ?? "");
     setPrice(unit.price != null ? String(unit.price) : "");
     setDescription(unit.description ?? "");
+    setAttachedToId(unit.attachedToId ?? "");
     setImage(unit.imageUrl ?? imageStore.get(unit.id));
     setError(null);
   }, [open, unit]);
+
+  // Eligible parents: not itself, and not already an accessory of something
+  // else — the backend rejects attachment chains, so mirror that here rather
+  // than let the admin pick an option that will just 400 on save.
+  const eligibleParents = allUnits.filter((u) => u.id !== unit?.id && !u.attachedToId);
 
   /**
    * Images are uploaded immediately (the unit already has an id), so an admin
@@ -117,6 +127,7 @@ export function UnitFormPanel({ open, onClose, unit, knownCategories }: UnitForm
           category: category.trim() || undefined,
           description: description.trim() || undefined,
           price: priceValue,
+          attachedToId: attachedToId || null,
         },
       });
       toast(`Unit ${serialNumber.trim()} updated.`);
@@ -200,6 +211,23 @@ export function UnitFormPanel({ open, onClose, unit, knownCategories }: UnitForm
           value={description}
           onChange={(e) => setDescription(e.target.value)}
         />
+
+        <SelectField
+          label="Attached To (optional)"
+          value={attachedToId}
+          onChange={(e) => setAttachedToId(e.target.value)}
+        >
+          <option value="">Not attached — a standalone unit</option>
+          {eligibleParents.map((u) => (
+            <option key={u.id} value={u.id}>
+              {itemDisplayName(u)} — {u.serialNumber}
+            </option>
+          ))}
+        </SelectField>
+        <p className="-mt-sm text-body-sm text-on-surface-variant">
+          Use this for an accessory that ships with another unit and isn't sold on its own (e.g. a
+          mouse bundled with a desktop).
+        </p>
 
         {/* Image — uploaded/removed immediately, since this unit already exists. */}
         <div className="flex flex-col gap-xs">

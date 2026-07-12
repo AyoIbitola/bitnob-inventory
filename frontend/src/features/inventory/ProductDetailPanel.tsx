@@ -3,17 +3,22 @@ import { Button } from "@/components/Button";
 import { Badge, StatusBadge } from "@/components/Badge";
 import { Icon } from "@/components/Icon";
 import { RoleGate } from "@/auth/guards";
-import { formatDate, formatNumber, formatPrice } from "@/lib/format";
+import { formatDate, formatNumber, formatPrice, itemDisplayName } from "@/lib/format";
 import { imageStore } from "@/lib/imageStore";
 import type { Item, ProductGroup } from "@/types";
 
 interface ProductDetailPanelProps {
   group: ProductGroup | null;
+  /** Full catalog — used to resolve an "attached to" unit's display name. */
+  allItems: Item[];
   open: boolean;
   onClose: () => void;
+  onViewUnit: (unit: Item) => void;
   onEditUnit: (unit: Item) => void;
   onDeleteUnit: (unit: Item) => void;
   onAddUnits: (group: ProductGroup) => void;
+  /** Jump the panel to the product a unit is attached to. */
+  onNavigateToParent: (parent: Item) => void;
 }
 
 /**
@@ -23,17 +28,22 @@ interface ProductDetailPanelProps {
  */
 export function ProductDetailPanel({
   group,
+  allItems,
   open,
   onClose,
+  onViewUnit,
   onEditUnit,
   onDeleteUnit,
   onAddUnits,
+  onNavigateToParent,
 }: ProductDetailPanelProps) {
-  // Prefer the shared Cloudinary URL; fall back to the browser-local stopgap
-  // for images uploaded before Cloudinary was configured.
-  const productImage =
-    group?.units.find((u) => u.imageUrl)?.imageUrl ??
-    (group ? imageStore.get(group.units[0]?.id ?? "") : null);
+  // A header photo implies "this is what the product looks like" — only
+  // true when there's exactly one unit. For several units (each potentially
+  // with its own photo, own condition), borrowing one to represent the whole
+  // group was misleading; each unit's own photo is shown in its own row
+  // below instead.
+  const soleUnit = group?.units.length === 1 ? group.units[0] : null;
+  const productImage = soleUnit ? (soleUnit.imageUrl ?? imageStore.get(soleUnit.id)) : null;
 
   return (
     <SidePanel
@@ -91,54 +101,103 @@ export function ProductDetailPanel({
             <span>Units ({group.units.length})</span>
           </h4>
 
-          {/* Each unit shows its OWN description. Previously the panel rendered
-              units[0].description as a single "product description", which hid
-              every other unit's notes — condition/notes differ per device. */}
+          {/* Each unit shows its OWN photo, description and added-date — not the
+              group's. Click a row for the full read-only view (UnitDetailPanel);
+              the edit/delete icons and the attached-to link stop propagation so
+              they don't also trigger that. */}
           <ul className="divide-y divide-outline-variant overflow-hidden rounded-lg border border-outline-variant">
-            {group.units.map((unit) => (
-              <li key={unit.id} className="px-md py-sm hover:bg-surface-container-low">
-                <div className="flex items-start justify-between gap-md">
-                  <div className="min-w-0">
-                    <code className="block truncate text-body-sm font-semibold text-on-surface">
-                      {unit.serialNumber}
-                    </code>
-                    <span className="text-body-sm text-on-surface-variant">
-                      {formatPrice(unit.price)}
-                    </span>
-                  </div>
-                  <RoleGate role="admin">
-                    <div className="flex flex-shrink-0 gap-sm">
-                      <button
-                        type="button"
-                        aria-label={`Edit unit ${unit.serialNumber}`}
-                        onClick={() => onEditUnit(unit)}
-                        className="rounded p-1 text-on-surface-variant hover:text-primary focus:outline-none focus-visible:ring-2 focus-visible:ring-primary-container"
-                      >
-                        <Icon name="edit" className="text-[20px]" />
-                      </button>
-                      <button
-                        type="button"
-                        aria-label={`Delete unit ${unit.serialNumber}`}
-                        onClick={() => onDeleteUnit(unit)}
-                        className="rounded p-1 text-on-surface-variant hover:text-error focus:outline-none focus-visible:ring-2 focus-visible:ring-error"
-                      >
-                        <Icon name="delete" className="text-[20px]" />
-                      </button>
-                    </div>
-                  </RoleGate>
-                </div>
+            {group.units.map((unit) => {
+              const unitImage = unit.imageUrl ?? imageStore.get(unit.id);
+              const parent = unit.attachedToId
+                ? allItems.find((i) => i.id === unit.attachedToId)
+                : undefined;
 
-                {unit.description ? (
-                  <p className="mt-xs whitespace-pre-wrap text-body-sm leading-relaxed text-on-surface-variant">
-                    {unit.description}
-                  </p>
-                ) : (
-                  <p className="mt-xs text-body-sm italic text-on-surface-variant/60">
-                    No description for this unit.
-                  </p>
-                )}
-              </li>
-            ))}
+              return (
+                <li
+                  key={unit.id}
+                  role="button"
+                  tabIndex={0}
+                  onClick={() => onViewUnit(unit)}
+                  onKeyDown={(e) => {
+                    if (e.key === "Enter" || e.key === " ") {
+                      e.preventDefault();
+                      onViewUnit(unit);
+                    }
+                  }}
+                  className="cursor-pointer px-md py-sm hover:bg-surface-container-low focus:outline-none focus-visible:ring-2 focus-visible:ring-primary-container focus-visible:ring-inset"
+                >
+                  <div className="flex items-start justify-between gap-md">
+                    <div className="flex min-w-0 items-center gap-sm">
+                      <div className="flex h-9 w-9 flex-shrink-0 items-center justify-center overflow-hidden rounded bg-surface-variant">
+                        {unitImage ? (
+                          <img src={unitImage} alt="" className="h-full w-full object-cover" />
+                        ) : (
+                          <Icon name="inventory_2" className="text-[16px] text-on-surface-variant" />
+                        )}
+                      </div>
+                      <div className="min-w-0">
+                        <code className="block truncate text-body-sm font-semibold text-on-surface">
+                          {unit.serialNumber}
+                        </code>
+                        <span className="text-body-sm text-on-surface-variant">
+                          {formatPrice(unit.price)} · Added {formatDate(unit.createdAt ?? unit.updatedAt)}
+                        </span>
+                      </div>
+                    </div>
+                    <RoleGate role="admin">
+                      <div className="flex flex-shrink-0 gap-sm">
+                        <button
+                          type="button"
+                          aria-label={`Edit unit ${unit.serialNumber}`}
+                          onClick={(e) => {
+                            e.stopPropagation();
+                            onEditUnit(unit);
+                          }}
+                          className="rounded p-1 text-on-surface-variant hover:text-primary focus:outline-none focus-visible:ring-2 focus-visible:ring-primary-container"
+                        >
+                          <Icon name="edit" className="text-[20px]" />
+                        </button>
+                        <button
+                          type="button"
+                          aria-label={`Delete unit ${unit.serialNumber}`}
+                          onClick={(e) => {
+                            e.stopPropagation();
+                            onDeleteUnit(unit);
+                          }}
+                          className="rounded p-1 text-on-surface-variant hover:text-error focus:outline-none focus-visible:ring-2 focus-visible:ring-error"
+                        >
+                          <Icon name="delete" className="text-[20px]" />
+                        </button>
+                      </div>
+                    </RoleGate>
+                  </div>
+
+                  {unit.description ? (
+                    <p className="mt-xs whitespace-pre-wrap text-body-sm leading-relaxed text-on-surface-variant">
+                      {unit.description}
+                    </p>
+                  ) : (
+                    <p className="mt-xs text-body-sm italic text-on-surface-variant/60">
+                      No description for this unit.
+                    </p>
+                  )}
+
+                  {parent && (
+                    <button
+                      type="button"
+                      onClick={(e) => {
+                        e.stopPropagation();
+                        onNavigateToParent(parent);
+                      }}
+                      className="mt-xs inline-flex items-center gap-1 text-body-sm text-primary hover:underline focus:outline-none focus-visible:ring-2 focus-visible:ring-primary-container"
+                    >
+                      <Icon name="link" className="text-[16px]" />
+                      Attached to {itemDisplayName(parent)} ({parent.serialNumber})
+                    </button>
+                  )}
+                </li>
+              );
+            })}
           </ul>
         </div>
       )}

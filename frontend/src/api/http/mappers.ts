@@ -13,6 +13,7 @@ export interface ProductOut {
   description: string | null;
   price: number | null;
   image_url: string | null;
+  attached_to_id: number | null;
   created_at: string;
   updated_at: string;
 }
@@ -24,6 +25,7 @@ export interface ProductWrite {
   category?: string | null;
   description?: string | null;
   price?: number | null;
+  attached_to_id?: number | null;
 }
 
 export interface UserOut {
@@ -46,6 +48,7 @@ export function toItem(p: ProductOut): Item {
     description: p.description ?? undefined,
     price: p.price ?? undefined,
     imageUrl: p.image_url ?? undefined,
+    attachedToId: p.attached_to_id != null ? String(p.attached_to_id) : undefined,
     createdAt: p.created_at,
     updatedAt: p.updated_at,
   };
@@ -60,6 +63,9 @@ export function toProductWrite(input: Partial<ItemInput>): Partial<ProductWrite>
   if (input.category !== undefined) out.category = input.category || null;
   if (input.description !== undefined) out.description = input.description || null;
   if (input.price !== undefined) out.price = input.price ?? null;
+  if (input.attachedToId !== undefined) {
+    out.attached_to_id = input.attachedToId === null ? null : Number(input.attachedToId);
+  }
   return out;
 }
 

@@ -17,6 +17,27 @@ from app.schemas import InventorySummary, ProductCreate, ProductOut, ProductUpda
 router = APIRouter(prefix="/products", tags=["products"])
 
 
+def _validate_attachment(db: Session, attached_to_id: int, own_id: int | None) -> None:
+    """Shared guard for create/update: no self-attachment, target must exist,
+    and no chains (an accessory cannot itself have something attached to it)."""
+    if attached_to_id == own_id:
+        raise HTTPException(
+            status_code=status.HTTP_400_BAD_REQUEST,
+            detail="A product cannot be attached to itself",
+        )
+    parent = db.query(Product).filter(Product.id == attached_to_id).first()
+    if not parent:
+        raise HTTPException(
+            status_code=status.HTTP_400_BAD_REQUEST,
+            detail="attached_to_id does not match an existing product",
+        )
+    if parent.attached_to_id is not None:
+        raise HTTPException(
+            status_code=status.HTTP_400_BAD_REQUEST,
+            detail="Cannot attach to a product that is itself attached to another",
+        )
+
+
 @router.get("", response_model=list[ProductOut])
 def list_products(
     category: str | None = None,
@@ -104,6 +125,9 @@ def create_product(
             detail="Product with this serial number already exists",
         )
 
+    if payload.attached_to_id is not None:
+        _validate_attachment(db, payload.attached_to_id, own_id=None)
+
     product = Product(**payload.model_dump())
     db.add(product)
     db.commit()
@@ -122,7 +146,11 @@ def update_product(
     if not product:
         raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Product not found")
 
-    for field, value in payload.model_dump(exclude_unset=True).items():
+    updates = payload.model_dump(exclude_unset=True)
+    if updates.get("attached_to_id") is not None:
+        _validate_attachment(db, updates["attached_to_id"], own_id=product_id)
+
+    for field, value in updates.items():
         setattr(product, field, value)
 
     db.commit()

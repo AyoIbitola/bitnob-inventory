@@ -85,6 +85,9 @@ class ProductBase(BaseModel):
     category: str | None = None
     description: str | None = None
     price: float | None = Field(default=None, ge=0)
+    # Accessory relationship: the unit this one ships/is bundled with (e.g. a
+    # mouse attached to a desktop). Points at another product's id.
+    attached_to_id: int | None = None
 
 
 class ProductCreate(ProductBase):
@@ -98,6 +101,7 @@ class ProductUpdate(BaseModel):
     category: str | None = None
     description: str | None = None
     price: float | None = Field(default=None, ge=0)
+    attached_to_id: int | None = None
 
 
 class ProductOut(ProductBase):

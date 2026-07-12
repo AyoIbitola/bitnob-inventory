@@ -47,6 +47,11 @@ export interface Item {
   price?: number;
   /** Cloudinary URL from the backend (`image_url`). Public; any signed-in user sees it. */
   imageUrl?: string;
+  /**
+   * Accessory relationship: the id of the unit this one ships/is bundled with
+   * (e.g. a mouse attached to a desktop). Backend `attached_to_id`.
+   */
+  attachedToId?: string;
   createdAt?: string;
   updatedAt: string;
 }
@@ -86,6 +91,8 @@ export interface ItemInput {
   category?: string;
   description?: string;
   price?: number;
+  /** undefined = don't touch; null = clear the attachment; string = set it. */
+  attachedToId?: string | null;
 }
 
 /**

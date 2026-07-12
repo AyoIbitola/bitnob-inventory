@@ -31,6 +31,16 @@ export function itemDisplayName(item: Pick<Item, "brand" | "modelNo">): string {
   return [item.brand, item.modelNo].filter(Boolean).join(" ") || "Untitled item";
 }
 
+/**
+ * A unit's Product ID: brand + its own serial number, e.g. "DELL-SN48213X".
+ * Purely derived for display — not stored. `serial_number` alone was doing
+ * double duty as both the real manufacturer serial AND the display id, which
+ * is why ids like "dell-001" (typed by hand) didn't read as real serials.
+ */
+export function productIdFor(item: Pick<Item, "brand" | "serialNumber">): string {
+  return `${item.brand.trim().toUpperCase()}-${item.serialNumber.trim()}`;
+}
+
 /** Currency, tolerant of the nullable backend `price`. */
 export function formatPrice(price: number | undefined, currency = CURRENCY): string {
   if (price === undefined || price === null) return "—";
