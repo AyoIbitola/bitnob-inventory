@@ -8,7 +8,8 @@ import { useToast } from "@/components/Toast";
 import { ApiError } from "@/api";
 import { CURRENCY } from "@/config";
 import { fileToDownscaledDataUrl, imageStore } from "@/lib/imageStore";
-import type { ItemInput, ProductGroup } from "@/types";
+import { itemDisplayName } from "@/lib/format";
+import type { Item, ItemInput, ProductGroup } from "@/types";
 import { useCreateUnits, useUploadImage } from "./hooks";
 
 interface ProductFormPanelProps {
@@ -17,12 +18,16 @@ interface ProductFormPanelProps {
   /** When set, we're adding MORE units to an existing product. */
   prefill: ProductGroup | null;
   knownCategories: string[];
+  /** Full catalog — used to populate each unit's "Attached to" dropdown. */
+  allUnits: Item[];
 }
 
-/** A unit being drafted: its serial (product ID) and its own description. */
+/** A unit being drafted: its serial (product ID), its own description, and
+ * optionally the existing unit it's attached to (e.g. a bundled mouse). */
 interface UnitDraft {
   serial: string;
   description: string;
+  attachedToId: string;
 }
 
 /**
@@ -33,7 +38,13 @@ interface UnitDraft {
  * serial number per unit, creating one record each. That is what gives every
  * unit its own product ID.
  */
-export function ProductFormPanel({ open, onClose, prefill, knownCategories }: ProductFormPanelProps) {
+export function ProductFormPanel({
+  open,
+  onClose,
+  prefill,
+  knownCategories,
+  allUnits,
+}: ProductFormPanelProps) {
   const { toast } = useToast();
   const createUnits = useCreateUnits();
   const uploadImage = useUploadImage();
@@ -45,7 +56,15 @@ export function ProductFormPanel({ open, onClose, prefill, knownCategories }: Pr
   /** Fallback only — used for a unit that has no description of its own. */
   const [defaultDescription, setDefaultDescription] = useState("");
   /** One row per PHYSICAL unit: its serial (product ID) and its OWN description. */
-  const [units, setUnits] = useState<UnitDraft[]>([{ serial: "", description: "" }]);
+  const [units, setUnits] = useState<UnitDraft[]>([
+    { serial: "", description: "", attachedToId: "" },
+  ]);
+
+  // Eligible parents: existing units only (a batch can't attach to a sibling
+  // not yet created), and not already an accessory of something else — the
+  // backend rejects attachment chains, so mirror that here.
+  const eligibleParents = allUnits.filter((u) => !u.attachedToId);
+
   /** Preview shown in the form. */
   const [image, setImage] = useState<string | null>(null);
   /** The real file, uploaded to the backend after the unit exists (needs its id). */
@@ -63,7 +82,7 @@ export function ProductFormPanel({ open, onClose, prefill, knownCategories }: Pr
     setCategory(prefill?.category ?? "");
     setPrice(prefill?.unitPrice != null ? String(prefill.unitPrice) : "");
     setDefaultDescription("");
-    setUnits([{ serial: "", description: "" }]);
+    setUnits([{ serial: "", description: "", attachedToId: "" }]);
     setImage(null);
     setImageFile(null);
     setError(null);
@@ -74,11 +93,13 @@ export function ProductFormPanel({ open, onClose, prefill, knownCategories }: Pr
     setUnits((prev) => prev.map((u, i) => (i === index ? { ...u, [field]: value } : u)));
   }
   function addUnit() {
-    setUnits((prev) => [...prev, { serial: "", description: "" }]);
+    setUnits((prev) => [...prev, { serial: "", description: "", attachedToId: "" }]);
   }
   function removeUnit(index: number) {
     setUnits((prev) =>
-      prev.length === 1 ? [{ serial: "", description: "" }] : prev.filter((_, i) => i !== index),
+      prev.length === 1
+        ? [{ serial: "", description: "", attachedToId: "" }]
+        : prev.filter((_, i) => i !== index),
     );
   }
 
@@ -91,7 +112,11 @@ export function ProductFormPanel({ open, onClose, prefill, knownCategories }: Pr
     if (parts.length <= 1) return false;
     setUnits((prev) => {
       const next = [...prev];
-      next.splice(index, 1, ...parts.map((serial) => ({ serial, description: "" })));
+      next.splice(
+        index,
+        1,
+        ...parts.map((serial) => ({ serial, description: "", attachedToId: "" })),
+      );
       return next;
     });
     return true;
@@ -138,7 +163,11 @@ export function ProductFormPanel({ open, onClose, prefill, knownCategories }: Pr
     setFailures([]);
 
     const drafts = units
-      .map((u) => ({ serial: u.serial.trim(), description: u.description.trim() }))
+      .map((u) => ({
+        serial: u.serial.trim(),
+        description: u.description.trim(),
+        attachedToId: u.attachedToId,
+      }))
       .filter((u) => u.serial);
 
     if (!brand.trim()) return setError("Brand is required.");
@@ -165,6 +194,7 @@ export function ProductFormPanel({ open, onClose, prefill, knownCategories }: Pr
       // for units left blank (e.g. 20 identical cables).
       description: u.description || fallback || undefined,
       price: priceValue,
+      attachedToId: u.attachedToId || null,
     }));
 
     const { created, failed } = await createUnits.mutateAsync(inputs);
@@ -330,6 +360,19 @@ export function ProductFormPanel({ open, onClose, prefill, knownCategories }: Pr
                   aria-label={`Description for unit ${index + 1}`}
                   className="mt-sm ml-7 h-10 w-[calc(100%-2.75rem)] min-w-0 rounded-lg border border-outline-variant bg-surface-container-lowest px-md text-body-sm focus-ring"
                 />
+                <select
+                  value={unit.attachedToId}
+                  onChange={(e) => setUnitField(index, "attachedToId", e.target.value)}
+                  aria-label={`Attached to, for unit ${index + 1}`}
+                  className="mt-sm ml-7 h-10 w-[calc(100%-2.75rem)] min-w-0 appearance-none rounded-lg border border-outline-variant bg-surface-container-lowest px-md text-body-sm focus-ring"
+                >
+                  <option value="">NIL — not attached to anything</option>
+                  {eligibleParents.map((u) => (
+                    <option key={u.id} value={u.id}>
+                      Attached to: {itemDisplayName(u)} — {u.serialNumber}
+                    </option>
+                  ))}
+                </select>
               </div>
             ))}
           </div>

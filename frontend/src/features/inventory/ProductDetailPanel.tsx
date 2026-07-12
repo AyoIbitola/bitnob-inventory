@@ -182,7 +182,7 @@ export function ProductDetailPanel({
                     </p>
                   )}
 
-                  {parent && (
+                  {parent ? (
                     <button
                       type="button"
                       onClick={(e) => {
@@ -192,8 +192,10 @@ export function ProductDetailPanel({
                       className="mt-xs inline-flex items-center gap-1 text-body-sm text-primary hover:underline focus:outline-none focus-visible:ring-2 focus-visible:ring-primary-container"
                     >
                       <Icon name="link" className="text-[16px]" />
-                      Attached to {itemDisplayName(parent)} ({parent.serialNumber})
+                      Attached to: {itemDisplayName(parent)} ({parent.serialNumber})
                     </button>
+                  ) : (
+                    <p className="mt-xs text-body-sm text-on-surface-variant">Attached to: NIL</p>
                   )}
                 </li>
               );

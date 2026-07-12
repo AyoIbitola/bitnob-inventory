@@ -217,7 +217,7 @@ export function UnitFormPanel({ open, onClose, unit, knownCategories, allUnits }
           value={attachedToId}
           onChange={(e) => setAttachedToId(e.target.value)}
         >
-          <option value="">Not attached — a standalone unit</option>
+          <option value="">NIL — not attached to anything</option>
           {eligibleParents.map((u) => (
             <option key={u.id} value={u.id}>
               {itemDisplayName(u)} — {u.serialNumber}

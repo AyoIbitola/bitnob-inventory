@@ -98,12 +98,14 @@ export function UnitDetailPanel({
             <Field label="Last Updated" value={formatDateTime(unit.updatedAt)} />
           </dl>
 
-          {/* Attachment relationships */}
-          {parent && (
-            <div className="mt-lg">
-              <h4 className="mb-sm text-label-caps uppercase tracking-wider text-on-surface-variant">
-                Attached To
-              </h4>
+          {/* Attachment relationship — always shown, reads NIL when unattached
+              rather than being hidden, so its absence reads as a fact, not a
+              missing field. */}
+          <div className="mt-lg">
+            <h4 className="mb-sm text-label-caps uppercase tracking-wider text-on-surface-variant">
+              Attached To
+            </h4>
+            {parent ? (
               <button
                 type="button"
                 onClick={() => onNavigateToUnit(parent)}
@@ -114,8 +116,12 @@ export function UnitDetailPanel({
                 </span>
                 <Icon name="chevron_right" className="flex-shrink-0 text-on-surface-variant" />
               </button>
-            </div>
-          )}
+            ) : (
+              <p className="rounded-lg border border-outline-variant bg-surface-container-low px-md py-sm text-body-sm text-on-surface-variant">
+                NIL
+              </p>
+            )}
+          </div>
 
           {accessories.length > 0 && (
             <div className="mt-lg">

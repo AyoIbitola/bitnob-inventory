@@ -463,6 +463,7 @@ export function InventoryPage() {
         open={productFormOpen}
         prefill={prefill}
         knownCategories={categories}
+        allUnits={items ?? []}
         onClose={() => {
           setProductFormOpen(false);
           setPrefill(null);

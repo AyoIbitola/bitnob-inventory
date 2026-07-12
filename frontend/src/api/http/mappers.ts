@@ -1,4 +1,4 @@
-import type { Item, ItemInput, Role, User } from "@/types";
+import type { CategoryEntry, CategoryUpdateInput, Item, ItemInput, Role, User } from "@/types";
 import { initialsFrom } from "@/lib/format";
 
 /** ---- Backend wire types (mirror of the OpenAPI schemas) ---- */
@@ -33,6 +33,19 @@ export interface UserOut {
   email: string;
   is_admin: boolean;
   created_at: string;
+}
+
+export interface CategoryOut {
+  name: string;
+  units: number;
+  total_value: number;
+  description: string | null;
+  image_url: string | null;
+}
+
+export interface CategoryWrite {
+  new_name?: string;
+  description?: string | null;
 }
 
 /** ---- Mapping ---- */
@@ -80,6 +93,23 @@ export function toUser(u: UserOut): User {
     initials: initialsFrom(u.email.split("@")[0]?.replace(/[._-]/g, " ") ?? u.email),
     createdAt: u.created_at,
   };
+}
+
+export function toCategoryEntry(c: CategoryOut): CategoryEntry {
+  return {
+    name: c.name,
+    units: c.units,
+    totalValue: c.total_value,
+    description: c.description ?? undefined,
+    imageUrl: c.image_url ?? undefined,
+  };
+}
+
+export function toCategoryWrite(input: CategoryUpdateInput): CategoryWrite {
+  const out: CategoryWrite = {};
+  if (input.newName !== undefined) out.new_name = input.newName;
+  if (input.description !== undefined) out.description = input.description || null;
+  return out;
 }
 
 /** Best-effort JWT `exp` (seconds) → epoch ms, for token-expiry handling. */

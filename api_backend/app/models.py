@@ -18,6 +18,25 @@ class User(Base):
     created_at = Column(DateTime, default=_utcnow)
 
 
+class Category(Base):
+    """A category's own metadata (description, representative image).
+
+    Deliberately NOT an FK target for Product.category, which stays a plain
+    string — that keeps the existing category rename/filter/search code (all
+    of which matches on the string) untouched. This table is joined by name
+    purely to attach description/image metadata, and can hold categories with
+    zero products (an "empty" category has somewhere to live now)."""
+
+    __tablename__ = "categories"
+    id = Column(Integer, primary_key=True)
+    name = Column(String(100), unique=True, nullable=False, index=True)
+    description = Column(Text, nullable=True)
+    image_url = Column(String(500), nullable=True)
+    image_public_id = Column(String(255), nullable=True)
+    created_at = Column(DateTime, default=_utcnow)
+    updated_at = Column(DateTime, default=_utcnow, onupdate=_utcnow)
+
+
 class Product(Base):
     __tablename__ = "products"
     id = Column(Integer, primary_key=True)

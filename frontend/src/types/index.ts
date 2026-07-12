@@ -116,10 +116,27 @@ export interface Paginated<T> {
   total: number;
 }
 
-/** Category is just a distinct string on products; id === name here. */
-export interface Category {
-  id: string;
+/**
+ * A category's own record: rollup stats derived from its products, merged
+ * with any description/image stored for the name (backend `/categories`).
+ * Can exist with zero units — an "empty" category has somewhere to live.
+ */
+export interface CategoryEntry {
   name: string;
+  units: number;
+  totalValue: number;
+  description?: string;
+  imageUrl?: string;
+}
+
+export interface CategoryInput {
+  name: string;
+  description?: string;
+}
+
+export interface CategoryUpdateInput {
+  newName?: string;
+  description?: string;
 }
 
 /**

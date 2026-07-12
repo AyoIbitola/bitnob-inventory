@@ -125,17 +125,29 @@ class InventorySummary(BaseModel):
 
 
 # --- Categories ---
+#
+# Categories remain a plain string on Product (see app.models.Category's
+# docstring) — this schema layer merges that derived view (unit counts,
+# total value) with any stored metadata (description, image) for the name.
 
 class CategoryOut(BaseModel):
-    """Categories are strings on products; this is a derived view with counts."""
-
     name: str
     units: int
     total_value: float
+    description: str | None = None
+    image_url: str | None = None
 
 
-class CategoryRename(BaseModel):
-    new_name: str = Field(min_length=1, max_length=100)
+class CategoryCreate(BaseModel):
+    name: str = Field(min_length=1, max_length=100)
+    description: str | None = None
+
+
+class CategoryUpdate(BaseModel):
+    """Both fields optional so this covers a rename, a description edit, or both."""
+
+    new_name: str | None = Field(default=None, min_length=1, max_length=100)
+    description: str | None = None
 
 
 # --- Search ---

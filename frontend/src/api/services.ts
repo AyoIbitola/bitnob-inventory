@@ -1,4 +1,14 @@
-import type { AiSearchResult, AuthSession, Credentials, Item, ItemInput, User } from "@/types";
+import type {
+  AiSearchResult,
+  AuthSession,
+  CategoryEntry,
+  CategoryInput,
+  CategoryUpdateInput,
+  Credentials,
+  Item,
+  ItemInput,
+  User,
+} from "@/types";
 
 /**
  * Service contracts. Components and hooks depend on THESE interfaces, never on
@@ -35,6 +45,20 @@ export interface ItemsService {
   uploadImage(id: string, file: File): Promise<Item>;
   /** Remove a unit's image (also deletes the hosted asset). */
   removeImage(id: string): Promise<Item>;
+}
+
+export interface CategoriesService {
+  /** Every category name that exists (from a product OR its own metadata row). */
+  list(): Promise<CategoryEntry[]>;
+  /** Create a category that can exist before anything is stocked under it. */
+  create(input: CategoryInput): Promise<CategoryEntry>;
+  /** Rename and/or edit a description. Renaming updates every product that carries it. */
+  update(name: string, input: CategoryUpdateInput): Promise<CategoryEntry>;
+  /** Clears the category from its products (stock is kept) and removes its metadata. */
+  remove(name: string): Promise<void>;
+  /** Set the category's representative image (multipart). */
+  uploadImage(name: string, file: File): Promise<CategoryEntry>;
+  removeImage(name: string): Promise<CategoryEntry>;
 }
 
 export interface UsersService {

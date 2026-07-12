@@ -20,6 +20,9 @@ MAX_IMAGE_BYTES = 10 * 1024 * 1024  # 10 MB
 
 # Folder every product image lands in, inside your Cloudinary media library.
 _FOLDER = "bitvault/products"
+# Category representative images get their own folder — a generic photo for
+# the category as a whole, distinct from any individual product's photo.
+_CATEGORY_FOLDER = "bitvault/categories"
 
 cloudinary.config(
     cloud_name=settings.cloudinary_cloud_name,
@@ -61,4 +64,29 @@ def upload_product_image(data: bytes, product_id: int) -> dict:
 
 def delete_product_image(public_id: str) -> None:
     """Remove an asset from Cloudinary. Best-effort — callers ignore failures."""
+    cloudinary.uploader.destroy(public_id, resource_type="image", invalidate=True)
+
+
+def upload_category_image(data: bytes, category_id: int) -> dict:
+    """Upload (or overwrite) a category's representative image.
+
+    Keyed by the category's numeric id (not its name), so renaming a category
+    never breaks or orphans its Cloudinary asset.
+    """
+    return cloudinary.uploader.upload(
+        io.BytesIO(data),
+        folder=_CATEGORY_FOLDER,
+        public_id=str(category_id),
+        overwrite=True,
+        invalidate=True,
+        resource_type="image",
+        transformation=[
+            {"width": 1024, "height": 1024, "crop": "limit"},
+            {"quality": "auto"},
+        ],
+    )
+
+
+def delete_category_image(public_id: str) -> None:
+    """Remove a category image asset from Cloudinary. Best-effort."""
     cloudinary.uploader.destroy(public_id, resource_type="image", invalidate=True)
