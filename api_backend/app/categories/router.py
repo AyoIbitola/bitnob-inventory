@@ -2,7 +2,7 @@ from fastapi import APIRouter, Depends, File, HTTPException, UploadFile, status
 from sqlalchemy import func
 from sqlalchemy.orm import Session
 
-from app.auth.dependencies import get_current_user, require_admin
+from app.auth.dependencies import require_admin
 from app.database import get_db
 from app.media import (
     ALLOWED_IMAGE_TYPES,
@@ -47,7 +47,6 @@ def _out(db: Session, category: Category | None, name: str) -> CategoryOut:
 @router.get("", response_model=list[CategoryOut])
 def list_categories(
     db: Session = Depends(get_db),
-    _: User = Depends(get_current_user),
 ):
     """Every category name that exists — either because a product carries it,
     or because it has its own (possibly product-less) row — with counts and

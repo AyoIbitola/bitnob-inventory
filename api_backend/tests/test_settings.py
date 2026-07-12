@@ -1,12 +1,7 @@
-def test_get_settings_returns_default(client):
+def test_get_settings_is_public(client):
+    # No auth token at all -> still 200. Reading inventory-related data
+    # (including this threshold) is public; only PATCH is admin-gated.
     resp = client.get("/settings")
-    # No auth token -> 401, proving the endpoint isn't wide open.
-    assert resp.status_code == 401
-
-
-def test_get_settings_requires_auth_but_any_user_can_read(client, make_admin):
-    headers = make_admin("settingsadmin@example.com")
-    resp = client.get("/settings", headers=headers)
     assert resp.status_code == 200
     assert resp.json() == {"low_stock_threshold": 10}
 

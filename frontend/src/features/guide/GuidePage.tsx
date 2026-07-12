@@ -25,7 +25,7 @@ interface Section {
 }
 
 const SECTIONS: Section[] = [
-  { id: "sign-in", title: "Signing in", icon: "login" },
+  { id: "sign-in", title: "Signing in (admins only)", icon: "login" },
   { id: "getting-around", title: "Getting around", icon: "explore" },
   { id: "inventory", title: "Browsing inventory", icon: "inventory_2" },
   { id: "product-details", title: "Product details & units", icon: "qr_code_2" },
@@ -104,20 +104,24 @@ export function GuidePage() {
 
         {/* 1. Signing in */}
         <GuideSection section={SECTIONS[0]}>
+          <p className="text-body-md leading-relaxed text-on-surface-variant">
+            Browsing {APP_NAME} — Home, search, Categories, Reports, Settings — needs no account at
+            all. Signing in only matters if you need the <strong>Admin Panel</strong> (adding,
+            editing or removing stock, or managing users).
+          </p>
           <Steps>
             <Step n={1}>
-              Open {APP_NAME} and enter the <strong>email and password</strong> your administrator
-              gave you, then choose <strong>Sign in</strong>.
+              Open the account menu (top-right) and choose <strong>Log in</strong>. Enter the{" "}
+              <strong>email and password</strong> another admin gave you, then choose{" "}
+              <strong>Sign in</strong>.
             </Step>
             <Step n={2}>
-              Don&apos;t have an account? Accounts are created by an administrator — ask an admin on
-              your team to add you. There&apos;s no self-service reset either: if you forget your
-              password, an admin can set a new one for you.
+              There&apos;s no self-service sign-up or password reset — another admin creates your
+              account and can reset your password from the Users page if you forget it.
             </Step>
             <Step n={3}>
-              After signing in you land on the <strong>Inventory</strong> dashboard. To sign out,
-              open the <strong>account menu</strong> (your initials, top-right) and choose{" "}
-              <strong>Log out</strong>.
+              Once signed in, an <strong>Admin Panel</strong> link appears in the account menu. To
+              sign out, open that menu and choose <strong>Log out</strong>.
             </Step>
           </Steps>
         </GuideSection>
@@ -125,32 +129,37 @@ export function GuidePage() {
         {/* 2. Getting around */}
         <GuideSection section={SECTIONS[1]}>
           <p className="text-body-md leading-relaxed text-on-surface-variant">
-            The <strong>sidebar</strong> on the left is your main menu. The <strong>top bar</strong>{" "}
-            holds search and account controls on every page.
+            There&apos;s no sidebar outside the Admin Panel — you get around with{" "}
+            <strong>Home</strong>, <strong>Categories</strong>, and your{" "}
+            <strong>account menu</strong> (your initials, top-right, on every page).
           </p>
           <DefinitionList
             items={[
-              ["Inventory", "The main dashboard — every product and its stock."],
-              ["Categories", "Group products by type (Peripherals, Storage, …)."],
-              ["Reports", "Totals, stock health and CSV export."],
-              ["Settings", "Your preferences and password."],
-              ["Users", "Manage accounts — visible to admins only."],
+              ["Home", "The front door. Ask about your inventory in plain English."],
+              ["Categories", "Browse products by type (Peripherals, Storage, …)."],
+              ["Reports", "Totals, stock health and CSV export — in the account menu."],
+              ["Settings", "Your preferences and password — in the account menu."],
+              [
+                "Admin Panel",
+                "Full inventory management + Users — in the account menu, admins only.",
+              ],
             ]}
           />
           <p className="text-body-md leading-relaxed text-on-surface-variant">
-            In the top bar you&apos;ll also find <strong>Ask AI</strong>, the{" "}
-            <strong>notifications bell</strong>, and your <strong>account menu</strong>. On a phone,
-            tap the <Icon name="menu" className="align-middle text-[18px]" /> menu icon to open the
-            sidebar.
+            Inside the <strong>Admin Panel</strong> you&apos;ll find the sidebar with{" "}
+            <strong>Inventory</strong> and <strong>Users</strong>. Click the {APP_NAME} logo there to
+            head back to Home.
           </p>
         </GuideSection>
 
         {/* 3. Browsing inventory */}
         <GuideSection section={SECTIONS[2]}>
           <p className="text-body-md leading-relaxed text-on-surface-variant">
-            The dashboard opens with five summary cards — <strong>Products</strong>,{" "}
-            <strong>Total Units</strong>, <strong>Total Value</strong>, <strong>Low Stock</strong>{" "}
-            and <strong>Out of Stock</strong> — followed by the product list.
+            Click a category on the <strong>Categories</strong> page, or a result from{" "}
+            <strong>Home</strong>, to open the product table. It opens with five summary cards —{" "}
+            <strong>Products</strong>, <strong>Total Units</strong>, <strong>Total Value</strong>,{" "}
+            <strong>Low Stock</strong> and <strong>Out of Stock</strong> — followed by the product
+            list.
           </p>
           <Steps>
             <Step n={1}>
@@ -199,11 +208,14 @@ export function GuidePage() {
         <GuideSection section={SECTIONS[4]}>
           <p className="text-body-md leading-relaxed text-on-surface-variant">
             <strong>Ask AI</strong> lets you ask questions about your inventory in plain English,
-            instead of setting filters by hand.
+            instead of setting filters by hand. It&apos;s the search bar on <strong>Home</strong> —
+            the same feature is also available as <strong>Ask AI</strong> from within the product
+            table.
           </p>
           <Steps>
             <Step n={1}>
-              Select <strong>Ask AI</strong> in the top bar to open the question box.
+              Type your question into the search bar on <strong>Home</strong> (or select{" "}
+              <strong>Ask AI</strong> in the product table&apos;s top bar).
             </Step>
             <Step n={2}>
               Type a question and choose <strong>Ask</strong>. You&apos;ll get a short answer plus a
@@ -238,7 +250,8 @@ export function GuidePage() {
             <SubHeading>Add a product</SubHeading>
             <Steps>
               <Step n={1}>
-                On the Inventory page, choose <strong>Add Product</strong>.
+                In the <strong>Admin Panel</strong>&apos;s Inventory page, choose{" "}
+              <strong>Add Product</strong>.
               </Step>
               <Step n={2}>
                 Fill in the shared details once: <strong>Brand</strong> (required),{" "}
@@ -282,17 +295,17 @@ export function GuidePage() {
           </p>
           <Steps admin>
             <Step n={1}>
-              <strong>Add Category</strong> stages a new name so it&apos;s selectable when adding
-              products; it becomes permanent once a product uses it.
+              <strong>Add Category</strong> creates it right away — with an optional description and
+              photo — even before any product uses it.
             </Step>
             <Step n={2}>
-              <strong>Rename</strong> (<Icon name="edit" className="align-middle text-[18px]" />) a
-              category and it updates every product carrying it.
+              <strong>Edit</strong> (<Icon name="edit" className="align-middle text-[18px]" />) a
+              category to rename it (updates every product carrying it), change its description, or
+              set/replace its photo.
             </Step>
             <Step n={3}>
               <strong>Delete</strong> (<Icon name="delete" className="align-middle text-[18px]" />)
-              is only available for unused categories — reassign a category&apos;s products before it
-              can be removed.
+              works for any category. Its products are kept — they just become uncategorized.
             </Step>
           </Steps>
         </GuideSection>
@@ -322,14 +335,16 @@ export function GuidePage() {
         {/* 9. Users (admin) */}
         <GuideSection section={SECTIONS[8]}>
           <p className="text-body-md leading-relaxed text-on-surface-variant">
-            The <strong>Users</strong> page is for <strong>administrators</strong> only. Every new
-            account starts as <strong>staff</strong>.
+            The <strong>Users</strong> page (in the Admin Panel) is for{" "}
+            <strong>administrators</strong> only. There&apos;s no self-service sign-up — every
+            account is provisioned here.
           </p>
           <Steps admin>
             <Step n={1}>
               Choose <strong>Add User</strong>, enter their email and a temporary password —{" "}
               <strong>Generate</strong> makes a strong one and <strong>Copy</strong> puts it on your
-              clipboard to share securely.
+              clipboard to share securely. Tick <strong>Make this user an admin</strong> if they need
+              admin access from the start; otherwise they&apos;re created as staff.
             </Step>
             <Step n={2}>
               Use <strong>Make admin</strong> / <strong>Revoke admin</strong> to change someone&apos;s
@@ -372,11 +387,14 @@ export function GuidePage() {
           </p>
           <DefinitionList
             items={[
-              ["Low stock threshold", "The unit count at or below which a product is “Low Stock”."],
+              [
+                "Low stock threshold",
+                "The unit count at or below which a product is “Low Stock”. Org-wide, set by an admin — everyone sees the same number, staff included.",
+              ],
               ["Rows per page", "How many items each list shows before paging."],
               ["Notifications", "Turn inventory-change alerts on or off."],
               ["Security", "Change your password — current password required."],
-              ["Reset preferences", "Restore the default settings."],
+              ["Reset preferences", "Restore the default page-size and notification settings."],
             ]}
           />
           <Callout icon="lock" tone="neutral" title="Changing your password">

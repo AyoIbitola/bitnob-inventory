@@ -5,6 +5,7 @@ import App from "./App";
 import { ErrorBoundary } from "./components/ErrorBoundary";
 import { ToastProvider } from "./components/Toast";
 import { SettingsProvider } from "./settings/SettingsContext";
+import { ThemeProvider } from "./theme/ThemeContext";
 import "./index.css";
 
 const queryClient = new QueryClient({
@@ -20,13 +21,15 @@ const queryClient = new QueryClient({
 createRoot(document.getElementById("root")!).render(
   <StrictMode>
     <ErrorBoundary>
-      <QueryClientProvider client={queryClient}>
-        <SettingsProvider>
-          <ToastProvider>
-            <App />
-          </ToastProvider>
-        </SettingsProvider>
-      </QueryClientProvider>
+      <ThemeProvider>
+        <QueryClientProvider client={queryClient}>
+          <SettingsProvider>
+            <ToastProvider>
+              <App />
+            </ToastProvider>
+          </SettingsProvider>
+        </QueryClientProvider>
+      </ThemeProvider>
     </ErrorBoundary>
   </StrictMode>,
 );

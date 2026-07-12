@@ -1,5 +1,5 @@
 import type { AuthService } from "@/api/services";
-import type { AuthSession, Credentials, User } from "@/types";
+import type { AuthSession, Credentials } from "@/types";
 import { request } from "@/api/http";
 import { jwtExpiry, toUser, type UserOut } from "./mappers";
 
@@ -33,14 +33,6 @@ export const httpAuthService: AuthService = {
   async restore(token: string): Promise<AuthSession> {
     const me = await request<UserOut>("/auth/me", { method: "GET" });
     return { user: toUser(me), token, expiresAt: jwtExpiry(token) };
-  },
-
-  async register(credentials: Credentials): Promise<User> {
-    const created = await request<UserOut>("/auth/register", {
-      method: "POST",
-      body: credentials,
-    });
-    return toUser(created);
   },
 
   async changePassword({

@@ -15,6 +15,7 @@ import { RoleGate } from "@/auth/guards";
 import { useAuth } from "@/auth/AuthContext";
 import { useLowStockThreshold } from "@/features/settings/hooks";
 import { formatNumber, formatPrice } from "@/lib/format";
+import { fileToDownscaledDataUrl } from "@/lib/imageStore";
 import { useItems } from "@/features/inventory/hooks";
 import { groupItems } from "@/features/inventory/grouping";
 import type { CategoryEntry } from "@/types";
@@ -98,6 +99,9 @@ export function CategoriesPage() {
   const [addOpen, setAddOpen] = useState(false);
   const [newName, setNewName] = useState("");
   const [newDescription, setNewDescription] = useState("");
+  const [newImage, setNewImage] = useState<string | null>(null);
+  const [newImageFile, setNewImageFile] = useState<File | null>(null);
+  const [newImageBusy, setNewImageBusy] = useState(false);
   const [addError, setAddError] = useState<string | null>(null);
 
   const [editTarget, setEditTarget] = useState<CategoryRow | null>(null);
@@ -144,6 +148,19 @@ export function CategoriesPage() {
 
   const existingNames = useMemo(() => rows.map((r) => r.name.toLowerCase()), [rows]);
 
+  async function handleNewImage(file: File | undefined) {
+    if (!file) return;
+    setNewImageBusy(true);
+    try {
+      setNewImage(await fileToDownscaledDataUrl(file));
+      setNewImageFile(file);
+    } catch {
+      setAddError("Couldn't process that image.");
+    } finally {
+      setNewImageBusy(false);
+    }
+  }
+
   async function handleAdd() {
     const name = newName.trim();
     setAddError(null);
@@ -152,9 +169,26 @@ export function CategoriesPage() {
       return setAddError("That category already exists.");
     try {
       await createCategory.mutateAsync({ name, description: newDescription.trim() || undefined });
+      // Image upload needs the category to exist first (it's keyed by id
+      // server-side) — best-effort: the category is still created even if
+      // this fails, just without a photo yet (addable later via Edit).
+      if (newImageFile) {
+        try {
+          await uploadImage.mutateAsync({ name, file: newImageFile });
+        } catch (err) {
+          toast(
+            err instanceof ApiError
+              ? `Category added, but the image failed: ${err.message}`
+              : "Category added, but the image upload failed.",
+            "error",
+          );
+        }
+      }
       toast(`Category "${name}" added.`);
       setNewName("");
       setNewDescription("");
+      setNewImage(null);
+      setNewImageFile(null);
       setAddOpen(false);
     } catch (err) {
       setAddError(err instanceof ApiError ? err.message : "Couldn't add that category.");
@@ -223,6 +257,15 @@ export function CategoriesPage() {
     } catch (err) {
       toast(err instanceof ApiError ? err.message : "Couldn't delete that category.", "error");
     }
+  }
+
+  function closeAdd() {
+    setAddOpen(false);
+    setNewName("");
+    setNewDescription("");
+    setNewImage(null);
+    setNewImageFile(null);
+    setAddError(null);
   }
 
   const editImage = editTarget
@@ -324,7 +367,7 @@ export function CategoriesPage() {
           isLoading={isLoading}
           error={isError ? "Couldn't load categories." : null}
           onRetry={() => refetch()}
-          onRowClick={(r) => navigate(`/?category=${encodeURIComponent(r.name)}`)}
+          onRowClick={(r) => navigate(`/products?category=${encodeURIComponent(r.name)}`)}
           renderCard={(r) => (
             <div className="flex items-center gap-md">
               <CategoryThumb row={r} />
@@ -353,11 +396,11 @@ export function CategoriesPage() {
       {/* Add */}
       <Modal
         open={addOpen}
-        onClose={() => setAddOpen(false)}
+        onClose={closeAdd}
         title="Add Category"
         footer={
           <>
-            <Button variant="secondary" onClick={() => setAddOpen(false)}>
+            <Button variant="secondary" onClick={closeAdd}>
               Cancel
             </Button>
             <Button onClick={handleAdd} loading={createCategory.isPending}>
@@ -385,9 +428,48 @@ export function CategoriesPage() {
             value={newDescription}
             onChange={(e) => setNewDescription(e.target.value)}
           />
+
+          <div className="flex flex-col gap-xs">
+            <span className="text-label-caps uppercase tracking-wider text-on-surface-variant">
+              Category Image (optional)
+            </span>
+            {newImage ? (
+              <div className="relative overflow-hidden rounded-lg border border-outline-variant">
+                <img src={newImage} alt="" className="h-32 w-full object-cover" />
+                <button
+                  type="button"
+                  onClick={() => {
+                    setNewImage(null);
+                    setNewImageFile(null);
+                  }}
+                  aria-label="Remove image"
+                  className="absolute right-sm top-sm flex h-8 w-8 items-center justify-center rounded-full bg-black/60 text-white hover:bg-black/80"
+                >
+                  <Icon name="close" className="text-[18px]" />
+                </button>
+              </div>
+            ) : (
+              <label className="flex cursor-pointer flex-col items-center gap-sm rounded-lg border-2 border-dashed border-outline-variant bg-surface-container-low p-lg text-center transition-colors hover:bg-surface-container">
+                <span className="flex h-11 w-11 items-center justify-center rounded-full bg-surface-variant text-primary">
+                  <Icon name={newImageBusy ? "hourglass_empty" : "add_photo_alternate"} />
+                </span>
+                <span className="text-body-sm text-on-surface">
+                  {newImageBusy ? "Processing…" : "Click to add an image"}
+                </span>
+                <span className="text-body-sm text-on-surface-variant">PNG, JPG or WebP</span>
+                <input
+                  type="file"
+                  accept="image/png,image/jpeg,image/webp"
+                  className="hidden"
+                  disabled={newImageBusy}
+                  onChange={(e) => handleNewImage(e.target.files?.[0])}
+                />
+              </label>
+            )}
+          </div>
+
           <p className="text-body-sm text-on-surface-variant">
-            It&apos;s selectable immediately when adding products. Add an image after creating it, from
-            Edit.
+            It&apos;s selectable immediately when adding products.
           </p>
         </div>
       </Modal>
@@ -443,7 +525,7 @@ export function CategoriesPage() {
                 <div className="absolute right-sm top-sm flex gap-sm">
                   <label
                     title="Replace image"
-                    className="flex h-9 w-9 cursor-pointer items-center justify-center rounded-full bg-on-background/60 text-white transition-colors hover:bg-on-background/80"
+                    className="flex h-9 w-9 cursor-pointer items-center justify-center rounded-full bg-black/60 text-white transition-colors hover:bg-black/80"
                   >
                     <Icon name="edit" className="text-[18px]" />
                     <input
@@ -461,7 +543,7 @@ export function CategoriesPage() {
                     disabled={imageBusy}
                     aria-label="Remove image"
                     title="Remove image"
-                    className="flex h-9 w-9 items-center justify-center rounded-full bg-on-background/60 text-white transition-colors hover:bg-error"
+                    className="flex h-9 w-9 items-center justify-center rounded-full bg-black/60 text-white transition-colors hover:bg-error"
                   >
                     <Icon name="delete" className="text-[18px]" />
                   </button>

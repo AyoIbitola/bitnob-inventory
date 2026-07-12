@@ -1,6 +1,6 @@
 import { useState } from "react";
 import type { FormEvent } from "react";
-import { Link, useLocation, useNavigate } from "react-router-dom";
+import { useLocation, useNavigate } from "react-router-dom";
 import { useAuth } from "@/auth/AuthContext";
 import { ApiError } from "@/api";
 import { Button, InputField } from "@/components";
@@ -41,15 +41,12 @@ export function LoginPage() {
 
   return (
     <AuthShell
-      heading="Welcome back"
-      subheading="Enter your credentials to continue"
+      heading="Admin sign in"
+      subheading="Browsing inventory doesn't need an account — this is for the Admin Panel."
       footer={
         <>
           <p className="text-body-sm text-on-surface-variant">
-            Need an account?{" "}
-            <Link to="/register" className="font-semibold text-primary hover:underline">
-              Create one
-            </Link>
+            Admin accounts are provisioned by another admin from the Users page.
           </p>
           {USE_MOCK_API && (
             <p className="mt-md rounded-lg bg-surface-container-low px-md py-sm text-body-sm text-on-surface-variant">

@@ -1,18 +1,17 @@
 import type { ReactNode } from "react";
 import { APP_NAME } from "@/config";
-import { Logo } from "@/components/Logo";
 import { Icon } from "@/components/Icon";
 
 const HIGHLIGHTS: Array<{ icon: string; title: string; body: string }> = [
   { icon: "bolt", title: "Real-time tracking", body: "Stock levels and status update the moment they change." },
-  { icon: "shield_person", title: "Role-based access", body: "Staff browse; admins manage. Enforced end to end." },
+  { icon: "shield_person", title: "Admin controls", body: "Only admins can add, edit or remove stock. Enforced end to end." },
   { icon: "auto_awesome", title: "Ask-AI search", body: "Find anything in natural language, not just keywords." },
 ];
 
 /**
  * Split-panel auth shell — an exact 50/50 layout. Left: brand infrastructure
  * with a subtle dot grid + accent glow and product highlights. Right: the form.
- * Shared by Login and Register so the two screens are visually identical.
+ * Only used by Login now — admin sign-in is the one screen still gated.
  */
 export function AuthShell({
   heading,
@@ -32,7 +31,7 @@ export function AuthShell({
         {/* Ambient accent glow */}
         <div
           className="pointer-events-none absolute -left-24 -top-24 h-96 w-96 rounded-full opacity-40 blur-3xl"
-          style={{ background: "radial-gradient(circle, #4f46e5 0%, transparent 70%)" }}
+          style={{ background: "radial-gradient(circle, #1dd3b0 0%, transparent 70%)" }}
           aria-hidden
         />
         {/* Dot grid */}
@@ -46,7 +45,6 @@ export function AuthShell({
         />
 
         <div className="relative z-10 flex items-center gap-sm">
-          <Logo size={40} />
           <span className="text-label-caps uppercase tracking-widest text-white/80">{APP_NAME}</span>
         </div>
 
@@ -88,7 +86,6 @@ export function AuthShell({
           <div className="w-full max-w-[380px]">
             {/* Mark for mobile (brand panel hidden below md) */}
             <div className="mb-lg flex items-center gap-sm md:hidden">
-              <Logo size={32} />
               <span className="text-label-caps uppercase tracking-widest text-primary">
                 {APP_NAME}
               </span>

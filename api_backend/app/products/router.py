@@ -2,7 +2,7 @@ from fastapi import APIRouter, Depends, File, HTTPException, Query, UploadFile, 
 from sqlalchemy import func, or_
 from sqlalchemy.orm import Session
 
-from app.auth.dependencies import get_current_user, require_admin
+from app.auth.dependencies import require_admin
 from app.database import get_db
 from app.media import (
     ALLOWED_IMAGE_TYPES,
@@ -47,7 +47,6 @@ def list_products(
     limit: int | None = Query(default=None, ge=1, le=500),
     offset: int = Query(default=0, ge=0),
     db: Session = Depends(get_db),
-    _: User = Depends(get_current_user),
 ):
     query = db.query(Product)
     if category:
@@ -76,7 +75,6 @@ def list_products(
 @router.get("/summary", response_model=InventorySummary)
 def inventory_summary(
     db: Session = Depends(get_db),
-    _: User = Depends(get_current_user),
 ):
     """Dashboard rollup. One row = one physical unit, so total_units is a row
     count and total_value is the sum of unit prices."""
@@ -104,7 +102,6 @@ def inventory_summary(
 def get_product(
     product_id: int,
     db: Session = Depends(get_db),
-    _: User = Depends(get_current_user),
 ):
     product = db.query(Product).filter(Product.id == product_id).first()
     if not product:

@@ -241,7 +241,7 @@ export function UnitFormPanel({ open, onClose, unit, knownCategories, allUnits }
               <div className="absolute right-sm top-sm flex gap-sm">
                 <label
                   title="Replace image"
-                  className="flex h-9 w-9 cursor-pointer items-center justify-center rounded-full bg-on-background/60 text-white transition-colors hover:bg-on-background/80"
+                  className="flex h-9 w-9 cursor-pointer items-center justify-center rounded-full bg-black/60 text-white transition-colors hover:bg-black/80"
                 >
                   <Icon name="edit" className="text-[18px]" />
                   <input
@@ -259,7 +259,7 @@ export function UnitFormPanel({ open, onClose, unit, knownCategories, allUnits }
                   disabled={imageBusy}
                   aria-label="Remove image"
                   title="Remove image"
-                  className="flex h-9 w-9 items-center justify-center rounded-full bg-on-background/60 text-white transition-colors hover:bg-error"
+                  className="flex h-9 w-9 items-center justify-center rounded-full bg-black/60 text-white transition-colors hover:bg-error"
                 >
                   <Icon name="delete" className="text-[18px]" />
                 </button>

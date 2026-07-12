@@ -3,8 +3,9 @@ import { AuthProvider, useAuth } from "@/auth/AuthContext";
 import { RequireAuth, RequireRole } from "@/auth/guards";
 import { NotificationsProvider } from "@/notifications/NotificationsContext";
 import { AppLayout } from "@/components/layout/AppLayout";
+import { PlainLayout } from "@/components/layout/PlainLayout";
 import { LoginPage } from "@/features/auth/LoginPage";
-import { RegisterPage } from "@/features/auth/RegisterPage";
+import { HomePage } from "@/features/home/HomePage";
 import { InventoryPage } from "@/features/inventory/InventoryPage";
 import { CategoriesPage } from "@/features/categories/CategoriesPage";
 import { GuidePage } from "@/features/guide/GuidePage";
@@ -34,33 +35,39 @@ export default function App() {
                 </PublicOnly>
               }
             />
-            <Route
-              path="/register"
-              element={
-                <PublicOnly>
-                  <RegisterPage />
-                </PublicOnly>
-              }
-            />
 
-            <Route element={<RequireAuth />}>
-              <Route element={<AppLayout />}>
-                {/* Everyone: browse inventory, categories, own settings. */}
+            {/* Public — no login required. Browsing inventory is open to
+                anyone; only the Admin Panel (below) needs an account. The
+                backend enforces this too (GET endpoints have no auth
+                dependency; every write stays admin-gated). */}
+            <Route element={<PlainLayout />}>
+              <Route index element={<HomePage />} />
+              <Route path="products" element={<InventoryPage />} />
+              <Route path="categories" element={<CategoriesPage />} />
+              <Route path="reports" element={<ReportsPage />} />
+              <Route path="guide" element={<GuidePage />} />
+              <Route path="settings" element={<SettingsPage />} />
+            </Route>
+
+            {/* Admin Panel — the ONLY thing that still requires login. Not
+                logged in -> /login (and back here after). Logged in but not
+                admin -> bounced to Home. */}
+            <Route path="admin" element={<RequireAuth />}>
+              <Route
+                element={
+                  <RequireRole role="admin">
+                    <AppLayout />
+                  </RequireRole>
+                }
+              >
                 <Route index element={<InventoryPage />} />
-                <Route path="categories" element={<CategoriesPage />} />
-                <Route path="reports" element={<ReportsPage />} />
-                <Route path="guide" element={<GuidePage />} />
-                <Route path="settings" element={<SettingsPage />} />
-
-                {/* Legacy path — Inventory lives at "/" now. */}
-                <Route path="inventory" element={<Navigate to="/" replace />} />
-
-                {/* Admin-only routes — hard-gated, inaccessible to staff. */}
-                <Route element={<RequireRole role="admin" />}>
-                  <Route path="users" element={<UsersPage />} />
-                </Route>
+                <Route path="users" element={<UsersPage />} />
               </Route>
             </Route>
+
+            {/* Legacy paths from before the redesign. */}
+            <Route path="inventory" element={<Navigate to="/products" replace />} />
+            <Route path="users" element={<Navigate to="/admin/users" replace />} />
 
             <Route path="*" element={<Navigate to="/" replace />} />
           </Routes>

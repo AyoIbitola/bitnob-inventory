@@ -1,7 +1,6 @@
 import type { AuthService } from "@/api/services";
-import type { AuthSession, Credentials, User } from "@/types";
+import type { AuthSession, Credentials } from "@/types";
 import { ApiError } from "@/api/http";
-import { initialsFrom } from "@/lib/format";
 import { mockUsers } from "./data";
 
 const delay = (ms = 500) => new Promise((r) => setTimeout(r, ms));
@@ -42,23 +41,6 @@ export const mockAuthService: AuthService = {
     if (!user) throw new ApiError(401, "Session expired.");
     const { password: _pw, ...safeUser } = user;
     return { user: safeUser, token, expiresAt: Date.now() + 1000 * 60 * 60 };
-  },
-
-  async register({ email, password }: Credentials): Promise<User> {
-    await delay();
-    const key = email.toLowerCase();
-    if (mockUsers[key]) throw new ApiError(400, "Email already registered");
-    const user: User & { password: string } = {
-      id: String(Object.keys(mockUsers).length + 1),
-      name: email,
-      email,
-      role: "staff", // new accounts are always non-admin
-      initials: initialsFrom(email.split("@")[0] ?? email),
-      password,
-    };
-    mockUsers[key] = user;
-    const { password: _pw, ...safeUser } = user;
-    return safeUser;
   },
 
   async changePassword({

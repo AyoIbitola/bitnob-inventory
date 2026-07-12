@@ -1,8 +1,7 @@
-import { NavLink } from "react-router-dom";
+import { Link, NavLink } from "react-router-dom";
 import { cn } from "@/lib/cn";
 import { useAuth } from "@/auth/AuthContext";
 import { APP_NAME } from "@/config";
-import { Logo } from "@/components/Logo";
 import { NAV_ITEMS, type NavItem } from "./navConfig";
 
 interface SidebarProps {
@@ -11,22 +10,19 @@ interface SidebarProps {
 }
 
 /**
- * Fixed dark navigation rail. Nav is driven by NAV_ITEMS and filtered by role —
- * the Admin section only renders for admins (req #3). Collapses to an off-canvas
+ * Fixed dark navigation rail — the Admin Panel only (this component is
+ * mounted exclusively under the admin-gated /admin/* routes now; every other
+ * page uses PlainLayout with no sidebar at all). Collapses to an off-canvas
  * drawer below lg.
  */
 export function Sidebar({ open, onClose }: SidebarProps) {
-  const { user, hasRole } = useAuth();
-
-  const visible = NAV_ITEMS.filter((item) => !item.role || hasRole(item.role));
-  const mainItems = visible.filter((i) => i.section === "main");
-  const adminItems = visible.filter((i) => i.section === "admin");
+  const { user } = useAuth();
 
   return (
     <>
       {open && (
         <div
-          className="fixed inset-0 z-40 bg-on-background/50 lg:hidden"
+          className="fixed inset-0 z-40 bg-black/50 lg:hidden"
           onClick={onClose}
           aria-hidden
         />
@@ -39,34 +35,20 @@ export function Sidebar({ open, onClose }: SidebarProps) {
         )}
         aria-label="Primary navigation"
       >
-        {/* Brand */}
-        <div className="mb-xl flex items-center gap-sm px-2">
-          <Logo size={38} />
+        {/* Brand — links back to Home, the way out of the Admin Panel. */}
+        <Link to="/" className="mb-xl flex items-center gap-sm px-2" onClick={onClose}>
           <div className="leading-tight">
             <div className="text-body-md font-bold text-white">{APP_NAME}</div>
             <div className="text-[10px] uppercase tracking-[0.18em] text-white/40">
-              Inventory
+              Admin Panel
             </div>
           </div>
-        </div>
+        </Link>
 
         <nav className="flex-1 space-y-1 overflow-y-auto">
-          {mainItems.map((item) => (
+          {NAV_ITEMS.map((item) => (
             <SidebarLink key={item.to} item={item} onNavigate={onClose} />
           ))}
-
-          {adminItems.length > 0 && (
-            <div className="pt-lg">
-              <p className="px-3 pb-sm text-[10px] font-semibold uppercase tracking-[0.18em] text-white/30">
-                Administration
-              </p>
-              <div className="space-y-1">
-                {adminItems.map((item) => (
-                  <SidebarLink key={item.to} item={item} onNavigate={onClose} />
-                ))}
-              </div>
-            </div>
-          )}
         </nav>
 
         {/* User footer */}
@@ -90,7 +72,7 @@ function SidebarLink({ item, onNavigate }: { item: NavItem; onNavigate: () => vo
   return (
     <NavLink
       to={item.to}
-      end={item.to === "/"}
+      end={item.to === "/admin"}
       onClick={onNavigate}
       className={({ isActive }) =>
         cn(

@@ -1,5 +1,6 @@
 import { useEffect, useState } from "react";
 import type { FormEvent, ReactNode } from "react";
+import { Link } from "react-router-dom";
 import { Topbar } from "@/components/layout/Topbar";
 import { useLayout } from "@/components/layout/AppLayout";
 import { Button } from "@/components/Button";
@@ -72,24 +73,36 @@ export function SettingsPage() {
       </Topbar>
 
       <main className="mx-auto w-full max-w-3xl space-y-lg p-md md:p-lg">
-        <Section title="Profile" description="Your account details." icon="account_circle">
-          <div className="flex items-center gap-md">
-            <span className="flex h-14 w-14 flex-shrink-0 items-center justify-center rounded-full bg-secondary-container text-headline-sm font-bold text-on-secondary-container">
-              {user?.initials ?? "?"}
-            </span>
-            <div className="min-w-0">
-              <p className="truncate text-body-md font-semibold text-on-surface">{user?.email}</p>
-              <div className="mt-xs flex flex-wrap items-center gap-sm">
-                <Badge tone={user?.role === "admin" ? "info" : "neutral"}>{user?.role}</Badge>
-                {user?.createdAt && (
-                  <span className="text-body-sm text-on-surface-variant">
-                    Joined {formatDate(user.createdAt)}
-                  </span>
-                )}
+        {!user && (
+          <div className="flex items-center gap-sm rounded-lg border border-outline-variant bg-surface-container-low px-md py-sm text-body-sm text-on-surface-variant">
+            <Icon name="info" className="text-[18px]" />
+            Browsing is public — profile and password settings need an account.{" "}
+            <Link to="/login" className="font-semibold text-primary hover:underline">
+              Log in
+            </Link>
+          </div>
+        )}
+
+        {user && (
+          <Section title="Profile" description="Your account details." icon="account_circle">
+            <div className="flex items-center gap-md">
+              <span className="flex h-14 w-14 flex-shrink-0 items-center justify-center rounded-full bg-secondary-container text-headline-sm font-bold text-on-secondary-container">
+                {user.initials ?? "?"}
+              </span>
+              <div className="min-w-0">
+                <p className="truncate text-body-md font-semibold text-on-surface">{user.email}</p>
+                <div className="mt-xs flex flex-wrap items-center gap-sm">
+                  <Badge tone={user.role === "admin" ? "info" : "neutral"}>{user.role}</Badge>
+                  {user.createdAt && (
+                    <span className="text-body-sm text-on-surface-variant">
+                      Joined {formatDate(user.createdAt)}
+                    </span>
+                  )}
+                </div>
               </div>
             </div>
-          </div>
-        </Section>
+          </Section>
+        )}
 
         <Section
           title="Inventory"
@@ -167,9 +180,11 @@ export function SettingsPage() {
           />
         </Section>
 
-        <Section title="Security" description="Change your password." icon="lock">
-          <ChangePasswordForm onDone={() => toast("Password changed.")} />
-        </Section>
+        {user && (
+          <Section title="Security" description="Change your password." icon="lock">
+            <ChangePasswordForm onDone={() => toast("Password changed.")} />
+          </Section>
+        )}
 
         <Section title="About" description="Application information." icon="info">
           {/* Build metadata is admin-only: showing a version/data-source to every

@@ -1,4 +1,4 @@
-import { useMemo, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import { useSearchParams } from "react-router-dom";
 import { Topbar } from "@/components/layout/Topbar";
 import { useLayout } from "@/components/layout/AppLayout";
@@ -76,6 +76,24 @@ export function InventoryPage() {
   const [aiOpen, setAiOpen] = useState(false);
   /** The unit currently shown in the read-only UnitDetailPanel. */
   const [viewUnit, setViewUnit] = useState<Item | null>(null);
+
+  // Deep link from a Home search result: /products?unit=<id> opens that
+  // unit's detail panel directly, instead of just landing on the filtered
+  // table and making them find it again. Consumes the param immediately so
+  // closing the panel (or a background refetch) doesn't force it back open.
+  useEffect(() => {
+    const unitId = searchParams.get("unit");
+    if (!unitId || !items) return;
+    const item = items.find((i) => i.id === unitId);
+    if (item) setViewUnit(item);
+    setSearchParams(
+      (params) => {
+        params.delete("unit");
+        return params;
+      },
+      { replace: true },
+    );
+  }, [items, searchParams, setSearchParams]);
 
   const allGroups = useMemo(
     () => groupItems(items ?? [], lowStockThreshold),

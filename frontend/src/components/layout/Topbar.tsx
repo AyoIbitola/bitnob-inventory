@@ -3,6 +3,7 @@ import type { ReactNode } from "react";
 import { Link } from "react-router-dom";
 import { useAuth } from "@/auth/AuthContext";
 import { useNotifications } from "@/notifications/NotificationsContext";
+import { useTheme } from "@/theme/ThemeContext";
 import { Icon } from "@/components/Icon";
 import { Badge } from "@/components/Badge";
 import { cn } from "@/lib/cn";
@@ -10,13 +11,15 @@ import { cn } from "@/lib/cn";
 interface TopbarProps {
   title: string;
   children?: ReactNode;
-  onOpenNav: () => void;
+  /** Omit under PlainLayout — there's no drawer, so the menu button hides. */
+  onOpenNav?: () => void;
 }
 
 /** Sticky top bar: page title, page-supplied controls, notifications, account. */
 export function Topbar({ title, children, onOpenNav }: TopbarProps) {
-  const { user, logout } = useAuth();
+  const { user, logout, hasRole } = useAuth();
   const { notifications, unreadCount, markAllRead, clearAll } = useNotifications();
+  const { theme, toggleTheme } = useTheme();
   const [menu, setMenu] = useState<"none" | "account" | "bell">("none");
   const initials = user?.initials ?? user?.name.slice(0, 2).toUpperCase() ?? "?";
 
@@ -25,14 +28,16 @@ export function Topbar({ title, children, onOpenNav }: TopbarProps) {
   return (
     <header className="sticky top-0 z-30 flex h-16 items-center justify-between gap-sm border-b border-outline-variant bg-surface px-md md:px-lg">
       <div className="flex min-w-0 flex-1 items-center gap-sm md:gap-md">
-        <button
-          type="button"
-          onClick={onOpenNav}
-          className="flex-shrink-0 text-on-surface-variant hover:text-primary lg:hidden"
-          aria-label="Open navigation"
-        >
-          <Icon name="menu" />
-        </button>
+        {onOpenNav && (
+          <button
+            type="button"
+            onClick={onOpenNav}
+            className="flex-shrink-0 text-on-surface-variant hover:text-primary lg:hidden"
+            aria-label="Open navigation"
+          >
+            <Icon name="menu" />
+          </button>
+        )}
         {/* Smaller on phones — 24px + controls doesn't fit a 360px viewport. */}
         <h2 className="truncate text-headline-sm font-bold text-primary md:text-display-md">
           {title}
@@ -41,6 +46,17 @@ export function Topbar({ title, children, onOpenNav }: TopbarProps) {
       </div>
 
       <div className="flex flex-shrink-0 items-center gap-xs">
+        {/* Theme toggle */}
+        <button
+          type="button"
+          onClick={toggleTheme}
+          aria-label={theme === "dark" ? "Switch to light mode" : "Switch to dark mode"}
+          title={theme === "dark" ? "Switch to light mode" : "Switch to dark mode"}
+          className="rounded-full p-2 text-on-surface-variant transition-colors hover:bg-surface-variant/20 hover:text-primary focus:outline-none focus-visible:ring-2 focus-visible:ring-primary-container"
+        >
+          <Icon name={theme === "dark" ? "light_mode" : "dark_mode"} />
+        </button>
+
         {/* Notifications */}
         <div className="relative">
           <button
@@ -143,7 +159,7 @@ export function Topbar({ title, children, onOpenNav }: TopbarProps) {
             className="flex items-center gap-xs rounded-lg p-1 transition-colors hover:bg-surface-variant/20 focus:outline-none focus-visible:ring-2 focus-visible:ring-primary-container"
           >
             <span className="flex h-8 w-8 items-center justify-center rounded-full bg-secondary-container text-label-caps font-bold text-on-secondary-container">
-              {initials}
+              {user ? initials : <Icon name="person" className="text-[18px]" />}
             </span>
             <Icon name="expand_more" className="hidden text-[20px] text-on-surface-variant sm:block" />
           </button>
@@ -156,15 +172,37 @@ export function Topbar({ title, children, onOpenNav }: TopbarProps) {
                 className="absolute right-0 z-20 mt-sm w-56 overflow-hidden rounded-lg border border-outline-variant bg-surface-container-lowest shadow-overlay"
               >
                 <div className="border-b border-outline-variant px-md py-sm">
-                  <p className="truncate text-body-sm font-semibold text-on-surface">
-                    {user?.email}
-                  </p>
-                  {user && (
-                    <Badge tone={user.role === "admin" ? "info" : "neutral"} className="mt-xs">
-                      {user.role}
-                    </Badge>
+                  {user ? (
+                    <>
+                      <p className="truncate text-body-sm font-semibold text-on-surface">
+                        {user.email}
+                      </p>
+                      <Badge tone={user.role === "admin" ? "info" : "neutral"} className="mt-xs">
+                        {user.role}
+                      </Badge>
+                    </>
+                  ) : (
+                    <p className="text-body-sm text-on-surface-variant">Not signed in</p>
                   )}
                 </div>
+                <Link
+                  to="/reports"
+                  role="menuitem"
+                  onClick={close}
+                  className="flex w-full items-center gap-sm px-md py-sm text-left text-body-md text-on-surface transition-colors hover:bg-surface-container-low"
+                >
+                  <Icon name="analytics" className="text-[20px] text-on-surface-variant" />
+                  Reports
+                </Link>
+                <Link
+                  to="/guide"
+                  role="menuitem"
+                  onClick={close}
+                  className="flex w-full items-center gap-sm px-md py-sm text-left text-body-md text-on-surface transition-colors hover:bg-surface-container-low"
+                >
+                  <Icon name="help" className="text-[20px] text-on-surface-variant" />
+                  Documentation
+                </Link>
                 <Link
                   to="/settings"
                   role="menuitem"
@@ -174,18 +212,41 @@ export function Topbar({ title, children, onOpenNav }: TopbarProps) {
                   <Icon name="settings" className="text-[20px] text-on-surface-variant" />
                   Settings
                 </Link>
-                <button
-                  type="button"
-                  role="menuitem"
-                  onClick={() => {
-                    close();
-                    logout();
-                  }}
-                  className="flex w-full items-center gap-sm px-md py-sm text-left text-body-md text-on-surface transition-colors hover:bg-surface-container-low"
-                >
-                  <Icon name="logout" className="text-[20px] text-on-surface-variant" />
-                  Log out
-                </button>
+                {hasRole("admin") && (
+                  <Link
+                    to="/admin"
+                    role="menuitem"
+                    onClick={close}
+                    className="flex w-full items-center gap-sm border-t border-outline-variant px-md py-sm text-left text-body-md text-on-surface transition-colors hover:bg-surface-container-low"
+                  >
+                    <Icon name="admin_panel_settings" className="text-[20px] text-on-surface-variant" />
+                    Admin Panel
+                  </Link>
+                )}
+                {user ? (
+                  <button
+                    type="button"
+                    role="menuitem"
+                    onClick={() => {
+                      close();
+                      logout();
+                    }}
+                    className="flex w-full items-center gap-sm px-md py-sm text-left text-body-md text-on-surface transition-colors hover:bg-surface-container-low"
+                  >
+                    <Icon name="logout" className="text-[20px] text-on-surface-variant" />
+                    Log out
+                  </button>
+                ) : (
+                  <Link
+                    to="/login"
+                    role="menuitem"
+                    onClick={close}
+                    className="flex w-full items-center gap-sm border-t border-outline-variant px-md py-sm text-left text-body-md text-on-surface transition-colors hover:bg-surface-container-low"
+                  >
+                    <Icon name="login" className="text-[20px] text-on-surface-variant" />
+                    Log in
+                  </Link>
+                )}
               </div>
             </>
           )}

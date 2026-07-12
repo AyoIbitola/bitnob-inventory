@@ -10,6 +10,14 @@ export const httpUsersService: UsersService = {
     return users.map(toUser);
   },
 
+  async create(input: { email: string; password: string; isAdmin: boolean }): Promise<User> {
+    const created = await request<UserOut>("/users", {
+      method: "POST",
+      body: { email: input.email, password: input.password, is_admin: input.isAdmin },
+    });
+    return toUser(created);
+  },
+
   async setAdmin(id: string, isAdmin: boolean): Promise<User> {
     const updated = await request<UserOut>(`/users/${id}/admin`, {
       method: "PATCH",

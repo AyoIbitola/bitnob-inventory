@@ -2,15 +2,18 @@ import { useState } from "react";
 import { Outlet, useOutletContext } from "react-router-dom";
 import { Sidebar } from "./Sidebar";
 
-interface LayoutContext {
-  /** Opens the mobile nav drawer; pages wire this to their Topbar. */
-  openNav: () => void;
+export interface LayoutContext {
+  /** Opens the mobile nav drawer; pages wire this to their Topbar. Undefined
+   *  under PlainLayout, which has no drawer — Topbar hides the menu button. */
+  openNav?: () => void;
 }
 
 /**
- * Authenticated app frame: fixed sidebar + a scrollable content column. Pages
- * render their own <Topbar> (so page-specific search/filters stay local) and
- * pull `openNav` from the outlet context for the mobile menu button.
+ * Admin Panel frame: fixed sidebar + a scrollable content column. Only
+ * mounted under the admin-gated /admin/* routes now — everyone else gets
+ * PlainLayout (no sidebar; see that file). Pages render their own <Topbar>
+ * (so page-specific search/filters stay local) and pull `openNav` from the
+ * outlet context for the mobile menu button.
  */
 export function AppLayout() {
   const [navOpen, setNavOpen] = useState(false);

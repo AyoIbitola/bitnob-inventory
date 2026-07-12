@@ -22,21 +22,23 @@ interface AddUserModalProps {
 }
 
 /**
- * Admin creates a staff account. New users are always non-admin; promote them
- * from the table afterwards. Uses /auth/register but does not affect the
- * admin's own session.
+ * Admin provisions an account directly (POST /users, admin-only) — the only
+ * way an account gets created now that public self-registration is gone.
+ * Defaults to staff; the admin can tick the box to provision another admin.
  */
 export function AddUserModal({ open, onClose }: AddUserModalProps) {
   const createUser = useCreateUser();
   const { toast } = useToast();
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
+  const [isAdmin, setIsAdmin] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
   useEffect(() => {
     if (open) {
       setEmail("");
       setPassword("");
+      setIsAdmin(false);
       setError(null);
     }
   }, [open]);
@@ -49,7 +51,7 @@ export function AddUserModal({ open, onClose }: AddUserModalProps) {
       return;
     }
     try {
-      await createUser.mutateAsync({ email, password });
+      await createUser.mutateAsync({ email, password, isAdmin });
       toast(`Account created for ${email}.`);
       onClose();
     } catch (err) {
@@ -123,9 +125,18 @@ export function AddUserModal({ open, onClose }: AddUserModalProps) {
             Copy
           </Button>
         </div>
+        <label className="flex cursor-pointer items-center gap-sm">
+          <input
+            type="checkbox"
+            checked={isAdmin}
+            onChange={(e) => setIsAdmin(e.target.checked)}
+            className="h-4 w-4 rounded border-outline-variant text-primary-container focus-ring"
+          />
+          <span className="text-body-sm text-on-surface">Make this user an admin</span>
+        </label>
         <p className="text-body-sm text-on-surface-variant">
-          Share this password with the user securely. They&apos;re created as staff — promote to
-          admin from the table if needed.
+          Share this password with the user securely.{" "}
+          {isAdmin ? "They're created as an admin." : "They're created as staff — promote to admin from the table if needed."}
         </p>
       </form>
     </Modal>

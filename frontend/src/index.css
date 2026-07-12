@@ -2,6 +2,101 @@
 @tailwind components;
 @tailwind utilities;
 
+/**
+ * Light/dark theme tokens — RGB triplets (not hex) so Tailwind's opacity
+ * modifiers work via rgb(var(--c-x) / <alpha-value>) in tailwind.config.ts.
+ * ThemeContext toggles the `dark` class on <html>; :root.dark overrides win.
+ */
+:root {
+  --c-background: 244 244 245;
+  --c-surface-dim: 217 217 220;
+  --c-surface-bright: 244 244 245;
+  --c-surface-container-lowest: 255 255 255;
+  --c-surface-container-low: 238 238 239;
+  --c-surface-container: 232 232 234;
+  --c-surface-container-high: 224 224 227;
+  --c-surface-container-highest: 216 216 219;
+  --c-surface-variant: 220 220 224;
+
+  --c-on-background: 18 18 20;
+  --c-on-surface-variant: 85 86 95;
+
+  --c-outline: 107 107 112;
+  --c-outline-variant: 214 214 218;
+
+  --c-primary: 29 211 176;
+  --c-on-primary: 255 255 255;
+  --c-primary-container: 11 83 69;
+  --c-on-primary-container: 200 251 239;
+
+  --c-secondary: 75 75 82;
+  --c-on-secondary: 255 255 255;
+  --c-secondary-container: 228 228 231;
+  --c-on-secondary-container: 63 63 70;
+
+  --c-tertiary: 107 91 58;
+  --c-on-tertiary: 255 255 255;
+  --c-tertiary-container: 240 230 210;
+  --c-on-tertiary-container: 74 61 34;
+
+  --c-error: 186 26 26;
+  --c-on-error: 255 255 255;
+  --c-error-container: 255 218 214;
+  --c-on-error-container: 147 0 10;
+
+  --c-status-success-bg: 211 247 236;
+  --c-status-success-fg: 11 83 69;
+  --c-status-warning-bg: 254 243 199;
+  --c-status-warning-fg: 180 83 9;
+  --c-status-danger-bg: 254 226 226;
+  --c-status-danger-fg: 185 28 28;
+}
+
+:root.dark {
+  --c-background: 18 18 18;
+  --c-surface-dim: 13 13 14;
+  --c-surface-bright: 44 44 46;
+  --c-surface-container-lowest: 26 26 28;
+  --c-surface-container-low: 32 32 35;
+  --c-surface-container: 38 38 42;
+  --c-surface-container-high: 47 47 51;
+  --c-surface-container-highest: 56 56 60;
+  --c-surface-variant: 58 58 62;
+
+  --c-on-background: 234 234 236;
+  --c-on-surface-variant: 168 168 173;
+
+  --c-outline: 140 140 145;
+  --c-outline-variant: 70 70 74;
+
+  --c-primary: 29 211 176;
+  --c-on-primary: 255 255 255;
+  --c-primary-container: 18 115 95;
+  --c-on-primary-container: 200 251 239;
+
+  --c-secondary: 184 184 189;
+  --c-on-secondary: 28 28 31;
+  --c-secondary-container: 53 53 58;
+  --c-on-secondary-container: 212 212 216;
+
+  --c-tertiary: 212 194 152;
+  --c-on-tertiary: 58 47 19;
+  --c-tertiary-container: 74 61 34;
+  --c-on-tertiary-container: 240 230 210;
+
+  --c-error: 255 180 171;
+  --c-on-error: 105 0 5;
+  --c-error-container: 147 0 10;
+  --c-on-error-container: 255 218 214;
+
+  --c-status-success-bg: 15 61 46;
+  --c-status-success-fg: 110 231 196;
+  --c-status-warning-bg: 74 53 16;
+  --c-status-warning-fg: 251 191 36;
+  --c-status-danger-bg: 74 21 21;
+  --c-status-danger-fg: 252 165 165;
+}
+
 @layer base {
   html {
     font-family: "Inter", "SF Pro", system-ui, sans-serif;
@@ -14,7 +109,7 @@
   /* Global keyboard focus indicator (WCAG 2.4.7). Only for keyboard users —
      :focus-visible, so mouse clicks don't paint rings everywhere. */
   :focus-visible {
-    outline: 2px solid #4f46e5;
+    outline: 2px solid #0b5345;
     outline-offset: 2px;
     border-radius: 2px;
   }
@@ -39,7 +134,7 @@
 }
 
 @layer utilities {
-  /* Reusable focus ring: indigo border + soft 3px glow (design system spec). */
+  /* Reusable focus ring: teal border + soft glow (design system spec). */
   .focus-ring {
     @apply focus:outline-none focus:border-primary-container focus:ring-4 focus:ring-primary-container/20;
   }
@@ -77,4 +172,10 @@
 }
 ::-webkit-scrollbar-thumb:hover {
   background: #9ca3af;
+}
+:root.dark ::-webkit-scrollbar-thumb {
+  background: #46464a;
+}
+:root.dark ::-webkit-scrollbar-thumb:hover {
+  background: #5a5a60;
 }

@@ -397,7 +397,7 @@ export function ProductFormPanel({
                   setImageFile(null);
                 }}
                 aria-label="Remove image"
-                className="absolute right-sm top-sm flex h-8 w-8 items-center justify-center rounded-full bg-on-background/60 text-white hover:bg-on-background/80"
+                className="absolute right-sm top-sm flex h-8 w-8 items-center justify-center rounded-full bg-black/60 text-white hover:bg-black/80"
               >
                 <Icon name="close" className="text-[18px]" />
               </button>

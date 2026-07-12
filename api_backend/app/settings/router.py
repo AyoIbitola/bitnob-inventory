@@ -1,7 +1,7 @@
 from fastapi import APIRouter, Depends
 from sqlalchemy.orm import Session
 
-from app.auth.dependencies import get_current_user, require_admin
+from app.auth.dependencies import require_admin
 from app.database import get_db
 from app.models import AppSettings, User
 from app.schemas import AppSettingsOut, AppSettingsUpdate
@@ -26,11 +26,9 @@ def _row(db: Session) -> AppSettings:
 @router.get("", response_model=AppSettingsOut)
 def get_settings(
     db: Session = Depends(get_db),
-    _: User = Depends(get_current_user),
 ):
-    """Any signed-in user can READ the org-wide threshold — they need it to
-    understand why something shows as Low Stock — but only an admin can
-    change it (see PATCH below)."""
+    """Public — anyone browsing the inventory needs this to understand why
+    something shows as Low Stock. Only an admin can change it (see PATCH)."""
     return _row(db)
 
 

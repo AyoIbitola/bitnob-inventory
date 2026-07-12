@@ -11,8 +11,6 @@ interface AuthContextValue {
   initializing: boolean;
   isAuthenticated: boolean;
   login: (credentials: Credentials) => Promise<void>;
-  /** Self-signup: create the account, then sign the new user in. */
-  signUp: (credentials: Credentials) => Promise<void>;
   logout: () => void;
   /** Convenience role check used by guards and conditional UI. */
   hasRole: (role: Role) => boolean;
@@ -89,15 +87,6 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     [applySession],
   );
 
-  const signUp = useCallback(
-    async (credentials: Credentials) => {
-      await authService.register(credentials);
-      const session = await authService.login(credentials);
-      applySession(session);
-    },
-    [applySession],
-  );
-
   const logout = useCallback(() => {
     void authService.logout().catch(() => {
       /* best-effort; local session is cleared regardless */
@@ -111,11 +100,10 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       initializing,
       isAuthenticated: !!user,
       login,
-      signUp,
       logout,
       hasRole: (role: Role) => user?.role === role,
     }),
-    [user, initializing, login, signUp, logout],
+    [user, initializing, login, logout],
   );
 
   return <AuthContext.Provider value={value}>{children}</AuthContext.Provider>;

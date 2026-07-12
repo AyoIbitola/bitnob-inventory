@@ -21,9 +21,6 @@ export interface AuthService {
   logout(): Promise<void>;
   /** Restore a session from a persisted token (e.g. on app boot). */
   restore(token: string): Promise<AuthSession>;
-  /** Create an account. Returns the created (always non-admin) user; does NOT
-   *  sign anyone in — the caller decides (self-signup logs in, admin does not). */
-  register(credentials: Credentials): Promise<User>;
   /** Change your own password (requires the current one). */
   changePassword(input: { currentPassword: string; newPassword: string }): Promise<void>;
 }
@@ -63,6 +60,9 @@ export interface CategoriesService {
 
 export interface UsersService {
   list(): Promise<User[]>;
+  /** Admin-provisions an account directly (POST /users, admin-only) — the only
+   *  way an account gets created now that public self-registration is gone. */
+  create(input: { email: string; password: string; isAdmin: boolean }): Promise<User>;
   /** Promote/demote a user's admin flag. Admin-only on the backend. */
   setAdmin(id: string, isAdmin: boolean): Promise<User>;
   /** Admin resets someone's password — the recovery path for a forgotten one. */

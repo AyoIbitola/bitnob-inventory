@@ -1,7 +1,21 @@
 <!doctype html>
-<html lang="en" class="light">
+<html lang="en">
   <head>
     <meta charset="UTF-8" />
+    <script>
+      // Set the theme class before first paint — otherwise a returning
+      // dark-mode user sees a flash of light colors while React mounts and
+      // ThemeContext's effect catches up. Mirrors ThemeContext's own logic.
+      (function () {
+        try {
+          var stored = localStorage.getItem("bitvault.theme");
+          var dark =
+            stored === "dark" ||
+            (stored !== "light" && window.matchMedia("(prefers-color-scheme: dark)").matches);
+          if (dark) document.documentElement.classList.add("dark");
+        } catch (e) {}
+      })();
+    </script>
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
     <link rel="preconnect" href="https://fonts.googleapis.com" />
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />

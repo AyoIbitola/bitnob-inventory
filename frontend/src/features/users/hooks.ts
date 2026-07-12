@@ -1,6 +1,5 @@
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
-import { authService, usersService } from "@/api";
-import type { Credentials } from "@/types";
+import { usersService } from "@/api";
 
 const usersKey = ["users"] as const;
 
@@ -34,11 +33,13 @@ export function useResetPassword() {
   });
 }
 
-/** Admin-creates a user via /auth/register (does NOT change the admin's session). */
+/** Admin-provisions an account directly (POST /users, admin-only). Does NOT
+ *  change the admin's own session. */
 export function useCreateUser() {
   const qc = useQueryClient();
   return useMutation({
-    mutationFn: (credentials: Credentials) => authService.register(credentials),
+    mutationFn: (input: { email: string; password: string; isAdmin: boolean }) =>
+      usersService.create(input),
     onSuccess: () => qc.invalidateQueries({ queryKey: usersKey }),
   });
 }

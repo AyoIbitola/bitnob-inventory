@@ -30,7 +30,7 @@ export function SidePanel({ open, onClose, title, children, footer, className }:
     <div className="fixed inset-0 z-50">
       {/* Backdrop */}
       <div
-        className="absolute inset-0 bg-on-background/40 backdrop-blur-[2px] motion-safe:animate-[fadeIn_0.2s_ease-out]"
+        className="absolute inset-0 bg-black/40 backdrop-blur-[2px] motion-safe:animate-[fadeIn_0.2s_ease-out]"
         onMouseDown={onClose}
         aria-hidden
       />
