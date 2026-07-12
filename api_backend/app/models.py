@@ -37,6 +37,17 @@ class Category(Base):
     updated_at = Column(DateTime, default=_utcnow, onupdate=_utcnow)
 
 
+class AppSettings(Base):
+    """Org-wide policy settings, as opposed to a per-browser display
+    preference (page size, notifications — those stay in the frontend's
+    localStorage). Exactly one row ever exists; seeded by migration."""
+
+    __tablename__ = "app_settings"
+    id = Column(Integer, primary_key=True)
+    low_stock_threshold = Column(Integer, nullable=False, default=10)
+    updated_at = Column(DateTime, default=_utcnow, onupdate=_utcnow)
+
+
 class Product(Base):
     __tablename__ = "products"
     id = Column(Integer, primary_key=True)

@@ -43,6 +43,10 @@ export interface CategoryOut {
   image_url: string | null;
 }
 
+export interface AppSettingsOut {
+  low_stock_threshold: number;
+}
+
 export interface CategoryWrite {
   new_name?: string;
   description?: string | null;

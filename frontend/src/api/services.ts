@@ -70,3 +70,14 @@ export interface UsersService {
   /** Admin removes an account (offboarding, or scrubbing old external accounts). */
   remove(id: string): Promise<void>;
 }
+
+/**
+ * Org-wide policy settings (currently just the low stock threshold) — as
+ * opposed to a per-browser display preference, which stays in
+ * SettingsContext/localStorage. Any signed-in user can read it; only an
+ * admin can change it (enforced server-side too, not just in the UI).
+ */
+export interface AppSettingsService {
+  get(): Promise<{ lowStockThreshold: number }>;
+  update(lowStockThreshold: number): Promise<{ lowStockThreshold: number }>;
+}

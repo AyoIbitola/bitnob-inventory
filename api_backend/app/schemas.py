@@ -150,6 +150,16 @@ class CategoryUpdate(BaseModel):
     description: str | None = None
 
 
+# --- App settings ---
+
+class AppSettingsOut(BaseModel):
+    low_stock_threshold: int
+
+
+class AppSettingsUpdate(BaseModel):
+    low_stock_threshold: int = Field(ge=0)
+
+
 # --- Search ---
 
 class SearchRequest(BaseModel):

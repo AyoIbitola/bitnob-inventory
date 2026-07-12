@@ -9,6 +9,7 @@ from app.media import is_configured as cloudinary_configured
 from app.models import User
 from app.products.router import router as products_router
 from app.search.router import router as search_router
+from app.settings.router import router as settings_router
 from app.slack.router import router as slack_router
 
 app = FastAPI(title="Office Hardware Inventory API")
@@ -27,6 +28,7 @@ app.include_router(auth_router)
 app.include_router(products_router)
 app.include_router(categories_router)
 app.include_router(search_router)
+app.include_router(settings_router)
 app.include_router(slack_router)
 
 

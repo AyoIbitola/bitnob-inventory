@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import type { FormEvent, ReactNode } from "react";
 import { Topbar } from "@/components/layout/Topbar";
 import { useLayout } from "@/components/layout/AppLayout";
@@ -10,6 +10,7 @@ import { PasswordField } from "@/components/PasswordField";
 import { useToast } from "@/components/Toast";
 import { useAuth } from "@/auth/AuthContext";
 import { useSettings } from "@/settings/SettingsContext";
+import { useLowStockThreshold, useUpdateLowStockThreshold } from "./hooks";
 import { ApiError, authService } from "@/api";
 import { APP_NAME, CURRENCY } from "@/config";
 import { formatDate } from "@/lib/format";
@@ -30,9 +31,34 @@ export function SettingsPage() {
   const { toast } = useToast();
   const [saved, setSaved] = useState(false);
 
+  const { threshold: lowStockThreshold } = useLowStockThreshold();
+  const updateThreshold = useUpdateLowStockThreshold();
+  // Local draft so keystrokes don't fire a PATCH each time — only committed
+  // on blur. Synced from the server value once it loads.
+  const [thresholdDraft, setThresholdDraft] = useState(String(lowStockThreshold));
+  useEffect(() => {
+    setThresholdDraft(String(lowStockThreshold));
+  }, [lowStockThreshold]);
+
   function touch() {
     setSaved(true);
     window.setTimeout(() => setSaved(false), 1500);
+  }
+
+  async function commitThreshold() {
+    const n = Number(thresholdDraft);
+    if (!Number.isInteger(n) || n < 0) {
+      setThresholdDraft(String(lowStockThreshold));
+      return;
+    }
+    if (n === lowStockThreshold) return;
+    try {
+      await updateThreshold.mutateAsync(n);
+      touch();
+    } catch (err) {
+      setThresholdDraft(String(lowStockThreshold));
+      toast(err instanceof ApiError ? err.message : "Couldn't update the threshold.", "error");
+    }
   }
 
   return (
@@ -70,23 +96,40 @@ export function SettingsPage() {
           description="How stock levels are interpreted."
           icon="inventory_2"
         >
-          <InputField
-            label="Low stock threshold (units)"
-            type="number"
-            min={0}
-            wrapperClassName="sm:w-64"
-            value={String(settings.lowStockThreshold)}
-            onChange={(e) => {
-              const n = Number(e.target.value);
-              if (Number.isInteger(n) && n >= 0) {
-                update({ lowStockThreshold: n });
-                touch();
-              }
-            }}
-          />
+          {user?.role === "admin" ? (
+            <InputField
+              label="Low stock threshold (units)"
+              type="number"
+              min={0}
+              wrapperClassName="sm:w-64"
+              value={thresholdDraft}
+              disabled={updateThreshold.isPending}
+              onChange={(e) => setThresholdDraft(e.target.value)}
+              onBlur={commitThreshold}
+              onKeyDown={(e) => {
+                if (e.key === "Enter") e.currentTarget.blur();
+              }}
+            />
+          ) : (
+            // Staff can see the threshold that's shaping the Low Stock badges
+            // they rely on, just not change it — this is an inventory policy
+            // decision, not a personal display preference. Enforced
+            // server-side too (PATCH /settings is admin-only), this is just
+            // the UI reflecting that rather than offering a control that 403s.
+            <div className="sm:w-64">
+              <span className="text-label-caps uppercase tracking-wider text-on-surface-variant">
+                Low stock threshold (units)
+              </span>
+              <p className="mt-1 text-body-md text-on-surface">
+                {lowStockThreshold}{" "}
+                <span className="text-body-sm text-on-surface-variant">— set by an admin</span>
+              </p>
+            </div>
+          )}
           <p className="text-body-sm text-on-surface-variant">
-            A product with <strong>{settings.lowStockThreshold} units or fewer</strong> is marked
-            Low Stock; zero units is Out of Stock. Prices are in {CURRENCY}.
+            A product with <strong>{lowStockThreshold} units or fewer</strong> is marked Low Stock;
+            zero units is Out of Stock. Prices are in {CURRENCY}. This threshold applies to every
+            user, org-wide.
           </p>
         </Section>
 

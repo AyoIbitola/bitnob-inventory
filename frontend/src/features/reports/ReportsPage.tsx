@@ -6,7 +6,7 @@ import { Icon } from "@/components/Icon";
 import { StatCard } from "@/components/StatCard";
 import { SelectField } from "@/components/FormField";
 import { useToast } from "@/components/Toast";
-import { useSettings } from "@/settings/SettingsContext";
+import { useLowStockThreshold } from "@/features/settings/hooks";
 import { formatNumber, formatPrice, itemDisplayName } from "@/lib/format";
 import { useItems } from "@/features/inventory/hooks";
 import { groupItems } from "@/features/inventory/grouping";
@@ -36,7 +36,7 @@ const TOP_N = 5;
  */
 export function ReportsPage() {
   const { openNav } = useLayout();
-  const { settings } = useSettings();
+  const { threshold: lowStockThreshold } = useLowStockThreshold();
   const { toast } = useToast();
   const { data: items, isLoading } = useItems();
 
@@ -51,8 +51,8 @@ export function ReportsPage() {
   }, [items, range]);
 
   const groups = useMemo(
-    () => groupItems(scoped, settings.lowStockThreshold),
-    [scoped, settings.lowStockThreshold],
+    () => groupItems(scoped, lowStockThreshold),
+    [scoped, lowStockThreshold],
   );
 
   const totals = useMemo(() => {

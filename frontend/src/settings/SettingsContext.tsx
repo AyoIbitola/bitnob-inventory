@@ -3,16 +3,15 @@ import type { ReactNode } from "react";
 import { DEFAULT_PAGE_SIZE } from "@/config";
 
 /**
- * App preferences. The backend has no settings endpoint, so these are stored
- * per-browser in localStorage. They drive real behaviour (stock thresholds,
- * currency, page size, notifications) — not decoration.
- *
- * When the backend adds a user-preferences endpoint, swap the persistence here
- * and every consumer keeps working.
+ * PERSONAL display preferences, stored per-browser in localStorage — page
+ * size and notifications only. The low stock threshold used to live here too,
+ * but that's an org-wide policy decision (only an admin should set it, and
+ * every user needs to see the SAME number), not a per-browser preference —
+ * it's now server-stored via GET/PATCH /settings (see features/settings/hooks.ts,
+ * useLowStockThreshold). Keeping it here would mean each browser silently
+ * defaulted to its own stale copy instead of the admin's real value.
  */
 export interface Settings {
-  /** Units at or below this count = "Low Stock". 0 units = "Out of Stock". */
-  lowStockThreshold: number;
   /** Rows per page in tables. */
   pageSize: number;
   /** Poll the API and surface changes in the notification bell. */
@@ -22,7 +21,6 @@ export interface Settings {
 // Currency is NOT a setting — everything is in Naira. It lives as the single
 // CURRENCY constant in config and is the default for formatPrice().
 const DEFAULTS: Settings = {
-  lowStockThreshold: 10,
   pageSize: DEFAULT_PAGE_SIZE,
   notificationsEnabled: true,
 };

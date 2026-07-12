@@ -1,10 +1,18 @@
 import { USE_MOCK_API } from "@/config";
-import type { AuthService, CategoriesService, ItemsService, UsersService } from "./services";
+import type {
+  AppSettingsService,
+  AuthService,
+  CategoriesService,
+  ItemsService,
+  UsersService,
+} from "./services";
 
+import { httpAppSettingsService } from "./http/appSettingsService";
 import { httpAuthService } from "./http/authService";
 import { httpCategoriesService } from "./http/categoriesService";
 import { httpItemsService } from "./http/itemsService";
 import { httpUsersService } from "./http/usersService";
+import { mockAppSettingsService } from "./mock/appSettingsService";
 import { mockAuthService } from "./mock/authService";
 import { mockCategoriesService } from "./mock/categoriesService";
 import { mockItemsService } from "./mock/itemsService";
@@ -21,6 +29,15 @@ export const usersService: UsersService = USE_MOCK_API ? mockUsersService : http
 export const categoriesService: CategoriesService = USE_MOCK_API
   ? mockCategoriesService
   : httpCategoriesService;
+export const appSettingsService: AppSettingsService = USE_MOCK_API
+  ? mockAppSettingsService
+  : httpAppSettingsService;
 
 export { ApiError, registerTokenProvider, registerUnauthorizedHandler } from "./http";
-export type { AuthService, CategoriesService, ItemsService, UsersService } from "./services";
+export type {
+  AppSettingsService,
+  AuthService,
+  CategoriesService,
+  ItemsService,
+  UsersService,
+} from "./services";

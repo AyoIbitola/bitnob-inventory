@@ -13,7 +13,7 @@ import { ApiError } from "@/api";
 import { useToast } from "@/components/Toast";
 import { RoleGate } from "@/auth/guards";
 import { useAuth } from "@/auth/AuthContext";
-import { useSettings } from "@/settings/SettingsContext";
+import { useLowStockThreshold } from "@/features/settings/hooks";
 import { formatNumber, formatPrice } from "@/lib/format";
 import { useItems } from "@/features/inventory/hooks";
 import { groupItems } from "@/features/inventory/grouping";
@@ -80,13 +80,13 @@ function CategoryThumb({ row }: { row: CategoryRow }) {
 export function CategoriesPage() {
   const { openNav } = useLayout();
   const { hasRole } = useAuth();
-  const { settings } = useSettings();
   const navigate = useNavigate();
   const { toast } = useToast();
   const isAdmin = hasRole("admin");
 
   const { data: items, isLoading: itemsLoading } = useItems();
   const { data: categories, isLoading: catLoading, isError, refetch } = useCategories();
+  const { threshold: lowStockThreshold } = useLowStockThreshold();
   const createCategory = useCreateCategory();
   const updateCategory = useUpdateCategory();
   const deleteCategory = useDeleteCategory();
@@ -116,7 +116,7 @@ export function CategoriesPage() {
   }, [editTarget]);
 
   const rows = useMemo<CategoryRow[]>(() => {
-    const groups = groupItems(items ?? [], settings.lowStockThreshold);
+    const groups = groupItems(items ?? [], lowStockThreshold);
     const byName = new Map<string, CategoryEntry>((categories ?? []).map((c) => [c.name, c]));
 
     // Union of every name we know about: from stored categories (including
@@ -140,7 +140,7 @@ export function CategoriesPage() {
         };
       })
       .sort((a, b) => a.name.localeCompare(b.name));
-  }, [items, categories, settings.lowStockThreshold]);
+  }, [items, categories, lowStockThreshold]);
 
   const existingNames = useMemo(() => rows.map((r) => r.name.toLowerCase()), [rows]);
 

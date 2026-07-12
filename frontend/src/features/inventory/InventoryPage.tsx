@@ -11,6 +11,7 @@ import { Pagination } from "@/components/Pagination";
 import { SelectField } from "@/components/FormField";
 import { RoleGate } from "@/auth/guards";
 import { useSettings } from "@/settings/SettingsContext";
+import { useLowStockThreshold } from "@/features/settings/hooks";
 import { useDebouncedValue } from "@/hooks/useDebouncedValue";
 import { formatNumber, formatPrice } from "@/lib/format";
 import { imageStore } from "@/lib/imageStore";
@@ -39,7 +40,8 @@ const STATUS_OPTIONS: Array<{ value: StockStatus | ""; label: string }> = [
 export function InventoryPage() {
   const { openNav } = useLayout();
   const { settings } = useSettings();
-  const { lowStockThreshold, pageSize } = settings;
+  const { pageSize } = settings;
+  const { threshold: lowStockThreshold } = useLowStockThreshold();
 
   const { data: items, isLoading, isError, refetch } = useItems();
 
