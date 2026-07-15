@@ -174,7 +174,7 @@ export function HomePage() {
             {APP_NAME}
           </h1>
           <p className="mt-xs text-body-sm text-on-surface-variant">
-            Bitnob&apos;s internal inventory, ask about your stock in plain English.
+            Search your stock, ask a question, or browse everything on hand.
           </p>
 
           <form onSubmit={handleSubmit} className="mt-xl">
@@ -188,7 +188,7 @@ export function HomePage() {
                 autoFocus
                 value={query}
                 onChange={(e) => setQuery(e.target.value)}
-                placeholder="e.g. which mice are low on stock?"
+                placeholder="e.g. what's running low on stock?"
                 aria-label="Search inventory"
                 className="h-14 w-full rounded-full border-0 bg-surface-container-lowest pl-14 pr-md text-body-md text-on-surface shadow-overlay focus-ring"
               />

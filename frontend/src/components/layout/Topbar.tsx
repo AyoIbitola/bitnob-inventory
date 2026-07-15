@@ -38,6 +38,14 @@ export function Topbar({ title, children, onOpenNav }: TopbarProps) {
             <Icon name="menu" />
           </button>
         )}
+        <Link
+          to="/"
+          aria-label="Back to home"
+          title="Back to home"
+          className="flex-shrink-0 text-on-surface-variant hover:text-primary"
+        >
+          <Icon name="home" />
+        </Link>
         {/* Smaller on phones — 24px + controls doesn't fit a 360px viewport. */}
         <h2 className="truncate text-headline-sm font-bold text-primary md:text-display-md">
           {title}

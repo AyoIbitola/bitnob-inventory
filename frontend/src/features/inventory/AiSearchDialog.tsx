@@ -54,7 +54,7 @@ export function AiSearchDialog({ open, onClose, onSelectItem }: AiSearchDialogPr
             autoFocus
             value={query}
             onChange={(e) => setQuery(e.target.value)}
-            placeholder="e.g. which mice are low on stock?"
+            placeholder="e.g. what's running low on stock?"
             aria-label="Ask a question about inventory"
             className="h-11 w-full rounded-lg border border-outline-variant bg-surface-container-lowest pl-10 pr-md text-body-md focus-ring"
           />

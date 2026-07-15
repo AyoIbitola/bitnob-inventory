@@ -36,10 +36,9 @@ class Settings(BaseSettings):
         "https://bitnob-inventory.vercel.app,http://localhost:5173,http://localhost:5174"
     )
 
-    # Company domains allowed to REGISTER and to LOG IN. This is an internal
-    # tool on a public URL, so it's restricted to Bitnob staff addresses.
-    # Empty = open to anyone (the old behaviour).
-    allowed_email_domains: str = "withbitnob.com"
+    # Company domains allowed to REGISTER and to LOG IN. Empty = open to any
+    # email address, regardless of domain.
+    allowed_email_domains: str = ""
 
     model_config = SettingsConfigDict(env_file=".env", extra="ignore")
 
