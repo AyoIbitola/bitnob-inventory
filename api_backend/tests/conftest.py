@@ -19,7 +19,7 @@ from app.main import app
 # happened to import LAST silently won for the ENTIRE run — earlier files'
 # requests were quietly served by a different file's database. One shared
 # setup here removes the possibility of that collision.
-settings.allowed_email_domains = ""  # tests use @example.com; open the domain lock
+
 
 engine = create_engine(
     "sqlite://",

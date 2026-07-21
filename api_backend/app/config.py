@@ -3,11 +3,8 @@ from pydantic_settings import BaseSettings, SettingsConfigDict
 
 # Admins guaranteed to exist, regardless of environment configuration.
 #
-# This is deliberately in code, not env. External addresses can no longer log in
-# (see allowed_email_domains), so if the deployed ADMIN_SEED_EMAILS still pointed
-# at an outside address — e.g. the old mremmatola@gmail.com — the system would
-# end up with NO reachable admin at all and nobody could get back in. Unioning a
-# known @withbitnob.com address into the seed list makes that lockout impossible.
+# This is deliberately in code, not env. Unioning a known address into the seed
+# list ensures there is always at least one reachable admin.
 BOOTSTRAP_ADMIN_EMAILS = ["david.fowobaje@withbitnob.com"]
 
 
@@ -36,9 +33,7 @@ class Settings(BaseSettings):
         "https://bitnob-inventory.vercel.app,http://localhost:5173,http://localhost:5174"
     )
 
-    # Company domains allowed to REGISTER and to LOG IN. Empty = open to any
-    # email address, regardless of domain.
-    allowed_email_domains: str = ""
+
 
     model_config = SettingsConfigDict(env_file=".env", extra="ignore")
 
@@ -62,13 +57,7 @@ class Settings(BaseSettings):
     def allowed_origin_list(self) -> list[str]:
         return [o.strip() for o in self.allowed_origins.split(",") if o.strip()]
 
-    @property
-    def allowed_email_domain_list(self) -> list[str]:
-        return [
-            d.strip().lower().lstrip("@")
-            for d in self.allowed_email_domains.split(",")
-            if d.strip()
-        ]
+
 
 
 settings = Settings()

@@ -20,25 +20,7 @@ from app.schemas import (
 router = APIRouter()
 
 
-def _is_allowed_domain(email: str) -> bool:
-    """Is this address on an approved company domain (e.g. withbitnob.com)?"""
-    allowed = settings.allowed_email_domain_list
-    if not allowed:
-        return True  # unset => open (previous behaviour)
-    return email.rsplit("@", 1)[-1].lower() in allowed
 
-
-def _reject_disallowed_domain(email: str) -> None:
-    """Gate SELF-registration to approved company domains.
-
-    Without this, anyone who finds the URL can create an account and browse the
-    company's entire inventory.
-    """
-    if not _is_allowed_domain(email):
-        raise HTTPException(
-            status_code=status.HTTP_403_FORBIDDEN,
-            detail="Registration is restricted to company email addresses.",
-        )
 
 
 def _create_user(db: Session, email: str, password: str, is_admin: bool) -> User:
@@ -56,22 +38,12 @@ def _create_user(db: Session, email: str, password: str, is_admin: bool) -> User
 
 @router.post("/auth/register", response_model=UserOut, status_code=status.HTTP_201_CREATED)
 def register(payload: UserRegister, db: Session = Depends(get_db)):
-    _reject_disallowed_domain(payload.email)
     is_admin = payload.email.lower() in settings.admin_seed_email_list
     return _create_user(db, payload.email, payload.password, is_admin)
 
 
 @router.post("/auth/login", response_model=TokenOut)
 def login(payload: UserLogin, db: Session = Depends(get_db)):
-    # Enforced at LOGIN, not just registration. Gating registration alone would
-    # leave every pre-existing external account (gmail, etc.) still able to sign
-    # in — the domain lock has to apply to the door, not just the sign-up form.
-    if not _is_allowed_domain(payload.email):
-        raise HTTPException(
-            status_code=status.HTTP_403_FORBIDDEN,
-            detail="Access is restricted to company email addresses.",
-        )
-
     user = db.query(User).filter(User.email == payload.email).first()
     if not user or not verify_password(payload.password, user.password_hash):
         raise HTTPException(
@@ -116,12 +88,7 @@ def create_user(
     db: Session = Depends(get_db),
     _: User = Depends(require_admin),
 ):
-    """Admin-provisioned account.
-
-    The domain rule applies here too: login rejects non-company addresses, so
-    creating one would just produce an account that can never sign in.
-    """
-    _reject_disallowed_domain(payload.email)
+    """Admin-provisioned account."""
     return _create_user(db, payload.email, payload.password, payload.is_admin)
 
 

@@ -100,6 +100,5 @@ def integrations(_: User = Depends(require_admin)):
     return {
         "gemini": bool(settings.gemini_api_key),
         "cloudinary": cloudinary_configured(),
-        "email_domain_lock": settings.allowed_email_domain_list,
         "seed_admins": settings.admin_seed_email_list,
     }
