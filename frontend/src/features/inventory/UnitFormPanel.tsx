@@ -7,7 +7,7 @@ import { InputField, SelectField, TextareaField } from "@/components/FormField";
 import { ApiError } from "@/api";
 import { useToast } from "@/components/Toast";
 import { CURRENCY } from "@/config";
-import { fileToDownscaledDataUrl, imageStore } from "@/lib/imageStore";
+import { fileToDownscaledDataUrl, imageStore, resolveUnitImage } from "@/lib/imageStore";
 import { itemDisplayName } from "@/lib/format";
 import type { Item } from "@/types";
 import { useRemoveImage, useUpdateItem, useUploadImage } from "./hooks";
@@ -53,7 +53,7 @@ export function UnitFormPanel({ open, onClose, unit, knownCategories, allUnits }
     setPrice(unit.price != null ? String(unit.price) : "");
     setDescription(unit.description ?? "");
     setAttachedToId(unit.attachedToId ?? "");
-    setImage(unit.imageUrl ?? imageStore.get(unit.id));
+    setImage(resolveUnitImage(unit));
     setError(null);
   }, [open, unit]);
 

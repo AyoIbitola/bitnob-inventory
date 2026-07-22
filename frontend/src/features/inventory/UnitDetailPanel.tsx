@@ -4,7 +4,7 @@ import { Badge } from "@/components/Badge";
 import { Icon } from "@/components/Icon";
 import { RoleGate } from "@/auth/guards";
 import { formatDateTime, formatPrice, itemDisplayName, productIdFor } from "@/lib/format";
-import { imageStore } from "@/lib/imageStore";
+import { resolveUnitImage } from "@/lib/imageStore";
 import type { Item } from "@/types";
 
 interface UnitDetailPanelProps {
@@ -33,7 +33,7 @@ export function UnitDetailPanel({
   onDelete,
   onNavigateToUnit,
 }: UnitDetailPanelProps) {
-  const image = unit ? (unit.imageUrl ?? imageStore.get(unit.id)) : null;
+  const image = unit ? resolveUnitImage(unit) : null;
   const parent = unit?.attachedToId ? allItems.find((i) => i.id === unit.attachedToId) : undefined;
   const accessories = unit ? allItems.filter((i) => i.attachedToId === unit.id) : [];
 

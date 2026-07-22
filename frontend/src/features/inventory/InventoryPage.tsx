@@ -14,7 +14,7 @@ import { useSettings } from "@/settings/SettingsContext";
 import { useLowStockThreshold } from "@/features/settings/hooks";
 import { useDebouncedValue } from "@/hooks/useDebouncedValue";
 import { formatNumber, formatPrice } from "@/lib/format";
-import { imageStore } from "@/lib/imageStore";
+import { resolveGroupImage } from "@/lib/imageStore";
 import type { Item, ProductGroup, StockStatus } from "@/types";
 import { useItems } from "./hooks";
 import { groupItems } from "./grouping";
@@ -169,12 +169,10 @@ export function InventoryPage() {
         key: "product",
         header: "Product",
         render: (g) => {
-          // A photo here implies "this is what every unit in the row looks
-          // like" — true only when there's exactly one unit. For a group of
-          // several, borrowing one unit's photo to represent them all was
-          // misleading, so fall back to the generic icon instead.
-          const soleUnit = g.units.length === 1 ? g.units[0] : null;
-          const img = soleUnit ? (soleUnit.imageUrl ?? imageStore.get(soleUnit.id)) : null;
+          // Each unit has its own photo; represent the row with the first
+          // unit that has one rather than hiding the thumbnail whenever a
+          // product has more than one unit.
+          const img = resolveGroupImage(g.units);
           return (
             <div className="flex items-center gap-md">
               <div className="flex h-10 w-10 flex-shrink-0 items-center justify-center overflow-hidden rounded bg-surface-variant">

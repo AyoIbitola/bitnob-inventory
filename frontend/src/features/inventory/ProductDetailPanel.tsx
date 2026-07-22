@@ -4,7 +4,7 @@ import { Badge, StatusBadge } from "@/components/Badge";
 import { Icon } from "@/components/Icon";
 import { RoleGate } from "@/auth/guards";
 import { formatDate, formatNumber, formatPrice, itemDisplayName } from "@/lib/format";
-import { imageStore } from "@/lib/imageStore";
+import { resolveGroupImage, resolveUnitImage } from "@/lib/imageStore";
 import type { Item, ProductGroup } from "@/types";
 
 interface ProductDetailPanelProps {
@@ -37,13 +37,10 @@ export function ProductDetailPanel({
   onAddUnits,
   onNavigateToParent,
 }: ProductDetailPanelProps) {
-  // A header photo implies "this is what the product looks like" — only
-  // true when there's exactly one unit. For several units (each potentially
-  // with its own photo, own condition), borrowing one to represent the whole
-  // group was misleading; each unit's own photo is shown in its own row
-  // below instead.
-  const soleUnit = group?.units.length === 1 ? group.units[0] : null;
-  const productImage = soleUnit ? (soleUnit.imageUrl ?? imageStore.get(soleUnit.id)) : null;
+  // Each unit has its own photo (own condition, own upload) — the header
+  // shows the first unit's photo as a representative thumbnail for the
+  // group. Every unit's own photo is still shown in its own row below.
+  const productImage = group ? resolveGroupImage(group.units) : null;
 
   return (
     <SidePanel
@@ -107,7 +104,7 @@ export function ProductDetailPanel({
               they don't also trigger that. */}
           <ul className="divide-y divide-outline-variant overflow-hidden rounded-lg border border-outline-variant">
             {group.units.map((unit) => {
-              const unitImage = unit.imageUrl ?? imageStore.get(unit.id);
+              const unitImage = resolveUnitImage(unit);
               const parent = unit.attachedToId
                 ? allItems.find((i) => i.id === unit.attachedToId)
                 : undefined;
